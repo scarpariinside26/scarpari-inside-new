@@ -48,6 +48,234 @@ const comuniVeneto = {
   ]
 };
 
+// Componente Pagina Profilo
+function ProfiloPage({ onBack }) {
+  const [ruoli, setRuoli] = useState({
+    portiere: false,
+    difensore: false,
+    centrocampista: false,
+    attaccante: false
+  });
+  const [messaggio, setMessaggio] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // ID giocatore - PER ORA HARDCODATO, POI CON AUTH
+  const giocatoreId = 1;
+
+  // Carica i ruoli dal database
+  const caricaRuoli = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('ruoli_giocatore')
+        .select('*')
+        .eq('giocatore_id', giocatoreId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setRuoli({
+          portiere: data.portiere || false,
+          difensore: data.difensore || false,
+          centrocampista: data.centrocampista || false,
+          attaccante: data.attaccante || false
+        });
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento ruoli:', error);
+      setMessaggio('❌ Errore nel caricamento dei ruoli');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Salva i ruoli nel database
+  const salvaRuoli = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('ruoli_giocatore')
+        .update({
+          portiere: ruoli.portiere,
+          difensore: ruoli.difensore,
+          centrocampista: ruoli.centrocampista,
+          attaccante: ruoli.attaccante,
+          updated_at: new Date().toISOString()
+        })
+        .eq('giocatore_id', giocatoreId);
+
+      if (error) throw error;
+
+      setMessaggio('✅ Ruoli aggiornati con successo!');
+      setTimeout(() => setMessaggio(''), 3000);
+    } catch (error) {
+      console.error('Errore nel salvataggio:', error);
+      setMessaggio('❌ Errore nel salvataggio dei ruoli');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gestisce il cambio di stato dei checkbox
+  const handleRuoloChange = (ruolo) => {
+    setRuoli(prev => ({
+      ...prev,
+      [ruolo]: !prev[ruolo]
+    }));
+  };
+
+  // Carica i ruoli all'avvio
+  useEffect(() => {
+    caricaRuoli();
+  }, []);
+
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Il Mio Profilo</h1>
+        <div className="header-actions">
+          <button className="icon-button">⚙️</button>
+        </div>
+      </header>
+
+      <main className="page-content">
+        <div className="profile-header">
+          <div className="profile-avatar" style={{ backgroundColor: getColorFromName('Il Mio Profilo') }}>
+            👤
+          </div>
+          <h2 className="profile-name">Il Mio Profilo</h2>
+          <div className="profile-badge">Attivo</div>
+        </div>
+
+        {/* Sezione Ruoli */}
+        <div className="ruoli-container">
+          <div className="ruoli-header">
+            <h3>🔄 I Miei Ruoli Preferiti</h3>
+            <p>Seleziona i ruoli in cui ti senti a tuo agio durante le partite</p>
+          </div>
+
+          {isLoading ? (
+            <div className="loading">Caricamento ruoli...</div>
+          ) : (
+            <>
+              <div className="ruoli-grid">
+                {/* Portiere */}
+                <div className="ruolo-item">
+                  <input 
+                    type="checkbox" 
+                    id="portiere" 
+                    className="ruolo-checkbox"
+                    checked={ruoli.portiere}
+                    onChange={() => handleRuoloChange('portiere')}
+                  />
+                  <label htmlFor="portiere" className="ruolo-label">
+                    <span className="ruolo-emoji">🧤</span>
+                    <span className="ruolo-text">Portiere</span>
+                  </label>
+                </div>
+
+                {/* Difensore */}
+                <div className="ruolo-item">
+                  <input 
+                    type="checkbox" 
+                    id="difensore" 
+                    className="ruolo-checkbox"
+                    checked={ruoli.difensore}
+                    onChange={() => handleRuoloChange('difensore')}
+                  />
+                  <label htmlFor="difensore" className="ruolo-label">
+                    <span className="ruolo-emoji">🛡️</span>
+                    <span className="ruolo-text">Difensore</span>
+                  </label>
+                </div>
+
+                {/* Centrocampista */}
+                <div className="ruolo-item">
+                  <input 
+                    type="checkbox" 
+                    id="centrocampista" 
+                    className="ruolo-checkbox"
+                    checked={ruoli.centrocampista}
+                    onChange={() => handleRuoloChange('centrocampista')}
+                  />
+                  <label htmlFor="centrocampista" className="ruolo-label">
+                    <span className="ruolo-emoji">⚙️</span>
+                    <span className="ruolo-text">Centrocampista</span>
+                  </label>
+                </div>
+
+                {/* Attaccante */}
+                <div className="ruolo-item">
+                  <input 
+                    type="checkbox" 
+                    id="attaccante" 
+                    className="ruolo-checkbox"
+                    checked={ruoli.attaccante}
+                    onChange={() => handleRuoloChange('attaccante')}
+                  />
+                  <label htmlFor="attaccante" className="ruolo-label">
+                    <span className="ruolo-emoji">⚽</span>
+                    <span className="ruolo-text">Attaccante</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="ruoli-info">
+                <p>
+                  <strong>💡 Suggerimento:</strong> Seleziona tutti i ruoli in cui ti senti 
+                  comfortable per facilitare la creazione di squadre bilanciate!
+                </p>
+              </div>
+
+              {/* Pulsante Salva */}
+              <div className="ruoli-actions">
+                <button 
+                  onClick={salvaRuoli}
+                  disabled={isLoading}
+                  className="btn-salva"
+                >
+                  {isLoading ? '⏳ Salvataggio...' : '💾 Salva Modifiche'}
+                </button>
+                
+                {messaggio && (
+                  <div className={`messaggio ${messaggio.includes('✅') ? 'success' : 'error'}`}>
+                    {messaggio}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Sezione Statistiche (Futuro) */}
+        <div className="stats-container">
+          <h3>📊 Le Mie Statistiche</h3>
+          <div className="stats-placeholder">
+            <p>Qui vedrai le tue statistiche di gioco, presenze e valutazioni!</p>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-number">0</span>
+                <span className="stat-label">Partite</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">0</span>
+                <span className="stat-label">Presenze</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-number">-</span>
+                <span className="stat-label">Voto Medio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 // Componente Homepage - Stile Appito
 function HomePage({ onNavigate }) {
   const menuItems = [
@@ -56,6 +284,8 @@ function HomePage({ onNavigate }) {
     { id: 'classifica', icon: '🏆', title: 'Classifica', subtitle: 'Statistiche e ranking', color: '#ea580c' },
     { id: 'feed', icon: '💬', title: 'Feed', subtitle: 'News e aggiornamenti', color: '#16a34a' },
     { id: 'statistiche', icon: '📊', title: 'Statistiche', subtitle: 'Analisi performance', color: '#7c3aed' },
+    // 🔥 AGGIUNTA: Pagina Profilo
+    { id: 'profilo', icon: '👤', title: 'Il Mio Profilo', subtitle: 'Gestisci i tuoi ruoli', color: '#059669' },
     { id: 'impostazioni', icon: '⚙️', title: 'Impostazioni', subtitle: 'Preferenze sistema', color: '#475569' }
   ];
 
@@ -87,7 +317,10 @@ function HomePage({ onNavigate }) {
         <button className="nav-item active"><span>🏠</span><span>Home</span></button>
         <button className="nav-item"><span>📅</span><span>Eventi</span></button>
         <button className="nav-item"><span>👥</span><span>Giocatori</span></button>
-        <button className="nav-item"><span>👤</span><span>Profilo</span></button>
+        {/* 🔥 MODIFICA: Collegamento al Profilo */}
+        <button className="nav-item" onClick={() => onNavigate('profilo')}>
+          <span>👤</span><span>Profilo</span>
+        </button>
       </nav>
     </div>
   );
@@ -438,6 +671,8 @@ function App() {
       case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
       case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi': return <EventiPage onBack={handleBack} />;
+      // 🔥 AGGIUNTA: Pagina Profilo
+      case 'profilo': return <ProfiloPage onBack={handleBack} />;
       case 'home': default: return <HomePage onNavigate={setCurrentPage} />;
     }
   };
