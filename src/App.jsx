@@ -9,26 +9,43 @@ function getColorFromName(name) {
   return colors[index];
 }
 
-// Dataset Province del Veneto
+// Dataset Province del Veneto (solo Padova e Venezia)
 const provinceVeneto = [
-  { sigla: "VR", nome: "Verona", regione: "Veneto" },
-  { sigla: "VI", nome: "Vicenza", regione: "Veneto" },
   { sigla: "PD", nome: "Padova", regione: "Veneto" },
-  { sigla: "VE", nome: "Venezia", regione: "Veneto" },
-  { sigla: "TV", nome: "Treviso", regione: "Veneto" },
-  { sigla: "BL", nome: "Belluno", regione: "Veneto" },
-  { sigla: "RO", nome: "Rovigo", regione: "Veneto" }
+  { sigla: "VE", nome: "Venezia", regione: "Veneto" }
 ];
 
-// Dataset Comuni del Veneto
+// Dataset Comuni del Veneto (solo Padova e Venezia COMPLETI)
 const comuniVeneto = {
-  "VR": ["Verona", "Villafranca di Verona", "Legnago", "San Giovanni Lupatoto", "San Bonifacio", "Bussolengo", "Sona", "Pescantina", "Sommacampagna", "Valeggio sul Mincio", "Castelnuovo del Garda", "Zevio", "Caldiero", "Isola della Scala", "Nogarole Rocca", "Buttapietra", "Grezzana", "Roverè Veronese", "Bosco Chiesanuova", "Malcesine"],
-  "VI": ["Vicenza", "Bassano del Grappa", "Schio", "Valdagno", "Arzignano", "Thiene", "Montecchio Maggiore", "Lonigo", "Camisano Vicentino", "Castelfranco Veneto", "Dueville", "Monticello Conte Otto", "Creazzo", "Gambellara", "Nove", "Marostica", "Rossano Veneto", "Cassola", "Breganze", "Asiago"],
-  "PD": ["Padova", "Selvazzano Dentro", "Vigonza", "Cittadella", "Albignasego", "Abano Terme", "Piove di Sacco", "Monselice", "Este", "Cadoneghe", "Rubano", "Campodarsego", "Trebaseleghe", "Saonara", "Vigonovo", "Casalserugo", "Brugine", "Cartura", "Ponte San Nicolò", "Montegrotto Terme"],
-  "VE": ["Venezia", "Chioggia", "San Donà di Piave", "Mirano", "Portogruaro", "Spinea", "Jesolo", "Martellago", "Scorzè", "Noale", "Cavarzere", "Dolo", "Marcon", "Meolo", "Fossò", "Camponogara", "Campagna Lupia", "Pianiga", "Stra", "Eraclea"],
-  "TV": ["Treviso", "Conegliano", "Castelfranco Veneto", "Montebelluna", "Vittorio Veneto", "Mogliano Veneto", "Oderzo", "Paese", "Roncade", "Preganziol", "Vedelago", "Casale sul Sile", "Ponzano Veneto", "Susegana", "Mareno di Piave", "Volpago del Montello", "Gaiarine", "San Biagio di Callalta", "Motta di Livenza", "Cessalto"],
-  "BL": ["Belluno", "Feltre", "Sedico", "Santa Giustina", "Ponte nelle Alpi", "Longarone", "Cortina d'Ampezzo", "Auronzo di Cadore", "Cesiomaggiore", "Lentiai", "Trichiana", "San Gregorio nelle Alpi", "Sospirolo", "Pedavena", "La Valle Agordina", "Fonzaso", "Canale d'Agordo", "Falcade", "Alleghe", "Rocca Pietore"],
-  "RO": ["Rovigo", "Adria", "Porto Viro", "Lendinara", "Occhiobello", "Badia Polesine", "Polesella", "Castelmassa", "Ceregnano", "Villadose", "Costa di Rovigo", "Fratta Polesine", "San Martino di Venezze", "Villanova del Ghebbo", "Salara", "Gaiba", "Fiesso Umbertiano", "Canaro", "Bergantino", "Melara"]
+  "PD": [
+    "Abano Terme", "Agna", "Albignasego", "Anguillara Veneta", "Arquà Petrarca", "Arre", "Arzergrande", 
+    "Bagnoli di Sopra", "Baone", "Barbona", "Battaglia Terme", "Boara Pisani", "Borgoricco", "Bovolenta", 
+    "Brugine", "Cadoneghe", "Campodarsego", "Campodoro", "Camposampiero", "Campo San Martino", "Candiana", 
+    "Carceri", "Carmignano di Brenta", "Cartura", "Casale di Scodosia", "Casalserugo", "Castelbaldo", 
+    "Cervarese Santa Croce", "Cinto Euganeo", "Cittadella", "Codevigo", "Conselve", "Correzzola", 
+    "Curtarolo", "Due Carrare", "Este", "Fontaniva", "Galliera Veneta", "Galzignano Terme", "Gazzo", 
+    "Grantorto", "Granze", "Legnaro", "Limena", "Loreggia", "Lozzo Atestino", "Maserà di Padova", 
+    "Masi", "Massanzago", "Megliadino San Fidenzio", "Megliadino San Vitale", "Merlara", "Mestrino", 
+    "Monselice", "Montagnana", "Montegrotto Terme", "Noventa Padovana", "Ospedaletto Euganeo", "Padova", 
+    "Pernumia", "Piacenza d'Adige", "Piazzola sul Brenta", "Piombino Dese", "Piove di Sacco", "Polverara", 
+    "Ponso", "Ponte San Nicolò", "Pontelongo", "Pozzonovo", "Rovolon", "Rubano", "Saccolongo", 
+    "Saletto", "San Giorgio delle Pertiche", "San Giorgio in Bosco", "San Martino di Lupari", 
+    "San Pietro in Gu", "San Pietro Viminario", "Santa Giustina in Colle", "Santa Margherita d'Adige", 
+    "Sant'Angelo di Piove di Sacco", "Sant'Elena", "Sant'Urbano", "Saonara", "Selvazzano Dentro", 
+    "Solesino", "Stanghella", "Teolo", "Terrassa Padovana", "Tombolo", "Torreglia", "Trebaseleghe", 
+    "Tribano", "Urbana", "Veggiano", "Vescovana", "Vighizzolo d'Este", "Vigodarzere", "Vigonza", 
+    "Villa del Conte", "Villa Estense", "Villafranca Padovana", "Villanova di Camposampiero", "Vo"
+  ],
+  
+  "VE": [
+    "Annone Veneto", "Campagna Lupia", "Campolongo Maggiore", "Camponogara", "Caorle", "Cavallino-Treporti", 
+    "Cavarzere", "Ceggia", "Chioggia", "Cinto Caomaggiore", "Cona", "Concordia Sagittaria", "Dolo", 
+    "Eraclea", "Fiesso d'Artico", "Fossalta di Piave", "Fossalta di Portogruaro", "Fossò", "Gruaro", 
+    "Jesolo", "Marcon", "Martellago", "Meolo", "Mira", "Mirano", "Musile di Piave", "Noale", "Noventa di Piave", 
+    "Pianiga", "Portogruaro", "Pramaggiore", "Quarto d'Altino", "Salzano", "San Donà di Piave", 
+    "San Michele al Tagliamento", "San Stino di Livenza", "Santa Maria di Sala", "Scorzè", "Spinea", 
+    "Stra", "Teglio Veneto", "Torre di Mosto", "Venezia", "Vigonovo"
+  ]
 };
 
 // Componente Homepage - Stile Appito
