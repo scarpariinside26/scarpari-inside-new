@@ -531,4 +531,284 @@ body {
 }
 
 .dropdown-item.selected {
-  background
+  background: #1e40af;
+  color: white;
+}
+
+.comune-selezionato {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #166534;
+}
+
+/* RUOLI LIST */
+.ruoli-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ruolo {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* === NUOVE SEZIONI PER IL PROFILO === */
+
+/* CONTAINER RUOLI */
+.ruoli-container {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.ruoli-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.ruoli-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.ruoli-header p {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* GRIGLIA RUOLI */
+.ruoli-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.ruolo-item {
+  position: relative;
+}
+
+.ruolo-checkbox {
+  display: none;
+}
+
+.ruolo-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+  text-align: center;
+  min-height: 100px;
+}
+
+.ruolo-checkbox:checked + .ruolo-label {
+  border-color: #10b981;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.15);
+}
+
+.ruolo-emoji {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.ruolo-text {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+/* INFO E ACTIONS RUOLI */
+.ruoli-info {
+  background: #eff6ff;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border-left: 4px solid #3b82f6;
+}
+
+.ruoli-info p {
+  margin: 0;
+  color: #1e40af;
+  font-size: 0.875rem;
+}
+
+.ruoli-actions {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.btn-salva {
+  background: #10b981;
+  color: white;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.btn-salva:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-salva:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* MESSAGGI */
+.messaggio {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.messaggio.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.messaggio.error {
+  background: #fecaca;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+/* LOADING */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* STATS CONTAINER */
+.stats-container {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.stats-container h3 {
+  color: #1f2937;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.stats-placeholder {
+  background: #f8fafc;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #6b7280;
+  border: 2px dashed #d1d5db;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+}
+
+.stat-item .stat-number {
+  font-size: 1.5rem;
+  color: #1e40af;
+  margin-bottom: 0.25rem;
+}
+
+.stat-item .stat-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* POSIZIONE NON SPECIFICATA */
+.posizione-non-specificata {
+  color: #9ca3af !important;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .appito-main {
+    padding: 1rem;
+  }
+  
+  .page-content {
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+  
+  .grid-menu {
+    grid-template-columns: 1fr;
+  }
+  
+  .ruoli-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .menu-card {
+    padding: 1.25rem;
+  }
+  
+  .info-card {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ruoli-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .card-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+}
