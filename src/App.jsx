@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 
-// Componente Homepage - Carosello Schede
 function HomePage({ onNavigate }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   
@@ -65,57 +64,63 @@ function HomePage({ onNavigate }) {
 
   return (
     <div className="homepage">
-      {/* HEADER SENZA LOGO - SOLO TITOLO */}
       <header className="dashboard-header">
         <h1 className="app-title">Scarpari Inside</h1>
       </header>
 
-      <div className="carosello-container">
-        {/* Freccia sinistra */}
+      <div className="carosello-3d">
         <button className="carosello-arrow left" onClick={prevSlide}>
           ‹
         </button>
 
-        {/* Slide attiva */}
-        <div className="carosello-slide active">
-          <div 
-            className="slide-card"
-            style={{ borderLeftColor: slides[currentSlide].color }}
-          >
-            <div className="slide-icon" style={{ color: slides[currentSlide].color }}>
-              {slides[currentSlide].icon}
-            </div>
-            <h2 className="slide-title">{slides[currentSlide].title}</h2>
-            <p className="slide-description">{slides[currentSlide].description}</p>
-            <button 
-              className="slide-button"
-              style={{ backgroundColor: slides[currentSlide].color }}
-              onClick={() => onNavigate(slides[currentSlide].id)}
-            >
-              Apri {slides[currentSlide].title}
-            </button>
-          </div>
+        <div className="carosello-track">
+          {slides.map((slide, index) => {
+            const offset = (index - currentSlide + slides.length) % slides.length;
+            const position = offset > slides.length / 2 ? offset - slides.length : offset;
+            
+            return (
+              <div
+                key={slide.id}
+                className={`carosello-slide-3d ${position === 0 ? 'active' : ''}`}
+                style={{
+                  '--offset': position,
+                  '--abs-offset': Math.abs(position),
+                  '--direction': Math.sign(position),
+                  '--opacity': Math.max(1 - Math.abs(position) * 0.3, 0.2),
+                  '--scale': Math.max(1 - Math.abs(position) * 0.2, 0.6),
+                  '--rotateY': position * 25,
+                  '--z': -Math.abs(position) * 100
+                }}
+                onClick={() => position === 0 && onNavigate(slide.id)}
+              >
+                <div 
+                  className="slide-card-3d"
+                  style={{ borderLeftColor: slide.color }}
+                >
+                  <div className="slide-icon" style={{ color: slide.color }}>
+                    {slide.icon}
+                  </div>
+                  <h2 className="slide-title">{slide.title}</h2>
+                  <p className="slide-description">{slide.description}</p>
+                  {position === 0 && (
+                    <button 
+                      className="slide-button"
+                      style={{ backgroundColor: slide.color }}
+                    >
+                      Apri {slide.title}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Slide successiva (anteprima) */}
-        <div className="carosello-slide next">
-          <div className="slide-card preview">
-            <div className="slide-icon small">
-              {slides[(currentSlide + 1) % slides.length].icon}
-            </div>
-            <span className="slide-label">
-              {slides[(currentSlide + 1) % slides.length].title}
-            </span>
-          </div>
-        </div>
-
-        {/* Freccia destra */}
         <button className="carosello-arrow right" onClick={nextSlide}>
           ›
         </button>
       </div>
 
-      {/* Indicatori */}
       <div className="carosello-indicators">
         {slides.map((_, index) => (
           <button
@@ -129,85 +134,8 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Giocatori
-function GiocatoriPage({ onBack }) {
-  const [giocatori, setGiocatori] = useState([]);
+// [MANTIENI GLI ALTRI COMPONENTI PAGINE...]
 
-  useEffect(() => {
-    fetchGiocatori();
-  }, []);
-
-  const fetchGiocatori = async () => {
-    const { data } = await supabase
-      .from('profili_utenti')
-      .select('*')
-      .order('nome_completo', { ascending: true });
-    
-    if (data) setGiocatori(data);
-  };
-
-  return (
-    <div className="page">
-      <div className="page-header">
-        <button onClick={onBack} className="btn-back">← Indietro</button>
-        <h1>👥 Tutti i Giocatori</h1>
-      </div>
-      
-      <div className="giocatori-lista">
-        {giocatori.map(giocatore => (
-          <div key={giocatore.id} className="giocatore-card">
-            <div className="avatar">{giocatore.nome_completo.charAt(0)}</div>
-            <div className="giocatore-info">
-              <strong>{giocatore.nome_completo}</strong>
-              <span className="email">{giocatore.email}</span>
-              <span className="livello">{giocatore.livello_gioco}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Componente Eventi
-function EventiPage({ onBack }) {
-  const [eventi, setEventi] = useState([]);
-
-  useEffect(() => {
-    fetchEventi();
-  }, []);
-
-  const fetchEventi = async () => {
-    const { data } = await supabase
-      .from('eventi')
-      .select('*')
-      .order('data_ora', { ascending: true });
-    
-    if (data) setEventi(data);
-  };
-
-  return (
-    <div className="page">
-      <div className="page-header">
-        <button onClick={onBack} className="btn-back">← Indietro</button>
-        <h1>📅 Eventi</h1>
-      </div>
-      
-      <div className="eventi-lista">
-        {eventi.map(evento => (
-          <div key={evento.id} className="evento-card">
-            <h3>{evento.nome_evento}</h3>
-            <p>📅 {new Date(evento.data_ora).toLocaleDateString('it-IT')}</p>
-            <p>⏰ {new Date(evento.data_ora).toLocaleTimeString('it-IT')}</p>
-            <p>📍 {evento.luogo}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Componente principale con routing
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
 
