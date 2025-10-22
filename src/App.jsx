@@ -326,28 +326,46 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Dettaglio Giocatore - CORREGGI LA QUERY
+// Componente Dettaglio Giocatore con Selezione Posizione - VERSIONE CORRETTA
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
   const [ruoliGiocatore, setRuoliGiocatore] = useState(null);
-  // ... resto dello stato
+  const [modificaPosizione, setModificaPosizione] = useState(false);
+  const [provinciaSelezionata, setProvinciaSelezionata] = useState('');
+  const [comuneSelezionato, setComuneSelezionato] = useState('');
+  const [ricercaComune, setRicercaComune] = useState('');
+  const [dropdownAperto, setDropdownAperto] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
-    fetchGiocatore();
+    caricaDatiGiocatore(); // 🔥 RINOMINATO
   }, [giocatoreId]);
 
-  const fetchGiocatore = async () => {
+  // Click outside per chiudere il dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownAperto(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 🔥 RINOMINATO: caricaDatiGiocatore invece di fetchGiocatore
+  const caricaDatiGiocatore = async () => {
     try {
-      // 🔥 PRIMA: carica i dati del giocatore
+      // PRIMA: carica i dati del giocatore
       const { data: giocatoreData, error: giocatoreError } = await supabase
-        .from('giocatori')
+        .from('giocatori') // 🔥 CORRETTO: usa 'giocatori'
         .select('*')
         .eq('id', giocatoreId)
         .single();
       
       if (giocatoreError) throw giocatoreError;
 
-      // 🔥 SECONDO: carica i ruoli del giocatore
+      // SECONDO: carica i ruoli del giocatore
       const { data: ruoliData, error: ruoliError } = await supabase
         .from('ruoli_giocatore')
         .select('*')
@@ -365,31 +383,176 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     }
   };
 
-  // Click outside per chiudere il dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownAperto(false);
-      }
-    };
+  // Filtra comuni in base alla provincia e ricerca
+  const comuniFiltrati = provinciaSelezionata 
+    ? comuniVeneto[provinciaSelezionata].filter(comune =>
+        comune.toLowerCase().includes(ricercaComune.toLowerCase())
+      ).slice(0, 10)
+    : [];
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const selezionaComune = (comune) => {
+    setComuneSelezionato(comune);
+    setDropdownAperto(false);
+    setRicercaComune('');
+  };
 
-  const fetchGiocatore = async () => {
-    const { data } = await supabase
-      .from('profili_utenti')
-      .select('*')
-      .eq('id', giocatoreId)
-      .single();
-    
-    if (data) {
-      setGiocatore(data);
-      setProvinciaSelezionata(data.provincia || '');
-      setComuneSelezionato(data.comune || '');
+  const salvaPosizione = async () => {
+    if (provinciaSelezionata && comuneSelezionato) {
+      await supabase
+        .from('giocatori') // 🔥 CORRETTO: usa 'giocatori'
+        .update({ 
+          provincia: provinciaSelezionata,
+          comune: comuneSelezionato 
+        })
+        .eq('id', giocatoreId);
+      
+      setModificaPosizione(false);
+      caricaDatiGiocatore(); // 🔥 RINOMINATO
     }
   };
+
+  if (!giocatore) return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Caricamento...</h1>
+      </header>
+    </div>
+  );
+
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Profilo Giocatore</h1>
+        <div className="header-actions">
+          <button className="icon-button">✏️</button>
+        </div>
+      </header>
+
+      <main className="page-content">
+        <div className="profile-header">
+          <div className="profile-avatar" style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}>
+            {giocatore.nome_completo.charAt(0)}
+          </div>
+          <h2 className="profile-name">{giocatore.nome_completo}</h2>
+          <div className="profile-badge">{giocatore.livello_iniziale}</div> {/* 🔥 CORRETTO: livello_iniziale */}
+        </div>
+
+        <div className="info-grid">
+          <div className="info-card">
+            <h3>📧 Email</h3>
+            <p>{giocatore.email || 'Non specificata'}</p>
+          </div>
+          <div className="info-card">
+            <h3>📞 Telefono</h3>
+            <p>{giocatore.telefono || 'Non specificato'}</p>
+          </div>
+          
+          {/* SEZIONE RUOLI AGGIORNATA */}
+          <div className="info-card">
+            <h3>🎯 Ruoli</h3>
+            <div className="ruoli-list">
+              {ruoliGiocatore?.portiere && <span className="ruolo">Portiere</span>}
+              {ruoliGiocatore?.difensore && <span className="ruolo">Difensore</span>}
+              {ruoliGiocatore?.centrocampista && <span className="ruolo">Centrocampista</span>}
+              {ruoliGiocatore?.attaccante && <span className="ruolo">Attaccante</span>}
+              {!ruoliGiocatore && <span className="ruolo-empty">Ruoli non specificati</span>}
+            </div>
+          </div>
+          
+          {/* CAMPO POSIZIONE */}
+          <div className="info-card">
+            <div className="posizione-header">
+              <h3>🏠 Posizione</h3>
+              <div className="posizione-actions">
+                {!modificaPosizione ? (
+                  <button className="btn-modifica" onClick={() => setModificaPosizione(true)}>✏️</button>
+                ) : (
+                  <>
+                    <button className="btn-salva" onClick={salvaPosizione} disabled={!provinciaSelezionata || !comuneSelezionato}>✅</button>
+                    <button className="btn-annulla" onClick={() => setModificaPosizione(false)}>❌</button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {modificaPosizione ? (
+              <div className="posizione-inputs">
+                <div className="input-group">
+                  <label>Provincia</label>
+                  <select 
+                    value={provinciaSelezionata} 
+                    onChange={(e) => { 
+                      setProvinciaSelezionata(e.target.value); 
+                      setComuneSelezionato(''); 
+                      setRicercaComune('');
+                      setDropdownAperto(false);
+                    }} 
+                    className="select-provincia"
+                  >
+                    <option value="">Seleziona provincia</option>
+                    {provinceVeneto.map(prov => (
+                      <option key={prov.sigla} value={prov.sigla}>
+                        {prov.nome} ({prov.sigla})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {provinciaSelezionata && (
+                  <div className="input-group">
+                    <label>Comune</label>
+                    <input 
+                      type="text" 
+                      value={ricercaComune} 
+                      onChange={(e) => {
+                        setRicercaComune(e.target.value);
+                        setDropdownAperto(true);
+                      }}
+                      onFocus={() => setDropdownAperto(true)}
+                      placeholder="Cerca comune..." 
+                      className="input-ricerca-comune" 
+                    />
+                    
+                    {dropdownAperto && comuniFiltrati.length > 0 && (
+                      <div className="dropdown-comuni" ref={dropdownRef}>
+                        {comuniFiltrati.map(comune => (
+                          <div
+                            key={comune}
+                            className={`dropdown-item ${comune === comuneSelezionato ? 'selected' : ''}`}
+                            onClick={() => selezionaComune(comune)}
+                          >
+                            {comune}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {comuneSelezionato && (
+                      <div className="comune-selezionato">
+                        Selezionato: <strong>{comuneSelezionato}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className={!giocatore.comune ? 'posizione-non-specificata' : ''}>
+                {giocatore.comune && giocatore.provincia ? `${giocatore.comune} (${giocatore.provincia})` : 'Posizione non specificata'}
+              </p>
+            )}
+          </div>
+
+          <div className="info-card">
+            <h3>📅 Data Iscrizione</h3>
+            <p>{giocatore.created_at ? new Date(giocatore.created_at).toLocaleDateString('it-IT') : 'Non specificata'}</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
 
   // Filtra comuni in base alla provincia e ricerca
   const comuniFiltrati = provinciaSelezionata 
