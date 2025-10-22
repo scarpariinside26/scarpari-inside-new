@@ -1,482 +1,195 @@
-import React, { useState, useEffect } from 'react'
-import { supabase } from './supabaseClient'
+import { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
+import './App.css';
 
 function App() {
-  const [eventi, setEventi] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [nuovoEvento, setNuovoEvento] = useState({
-    nome_evento: '',
-    data_ora: '',
-    luogo: '',
-    max_partecipanti: 12
-  })
+  const [prossimoEvento, setProssimoEvento] = useState(null);
+  const [giocatori, setGiocatori] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [nuovoPost, setNuovoPost] = useState('');
 
-  // Carica eventi dal database
-  const caricaEventi = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('eventi')
-        .select('*')
-        .order('data_ora', { ascending: true })
-      
-      if (error) throw error
-      setEventi(data || [])
-    } catch (error) {
-      console.error('Errore caricamento eventi:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Crea nuovo evento
-  const creaEvento = async () => {
-    if (!nuovoEvento.nome_evento || !nuovoEvento.data_ora || !nuovoEvento.luogo) {
-      alert('Compila tutti i campi!')
-      return
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('eventi')
-        .insert([nuovoEvento])
-        .select()
-
-      if (error) throw error
-      
-      setEventi([...eventi, data[0]])
-      setNuovoEvento({
-        nome_evento: '',
-        data_ora: '',
-        luogo: '',
-        max_partecipanti: 12
-      })
-      alert('Evento creato con successo!')
-      caricaEventi() // Ricarica la lista
-    } catch (error) {
-      console.error('Errore creazione evento:', error)
-      alert('Errore nella creazione dell\'evento')
-    }
-  }
-
-  // Carica eventi all'avvio
+  // Fetch prossimo evento
   useEffect(() => {
-    caricaEventi()
-  }, [])
+    fetchProssimoEvento();
+    fetchGiocatori();
+    fetchPosts();
+  }, []);
+
+  const fetchProssimoEvento = async () => {
+    const { data } = await supabase
+      .from('eventi')
+      .select('*')
+      .gte('data_ora', new Date().toISOString())
+      .order('data_ora', { ascending: true })
+      .limit(1);
+    
+    if (data && data.length > 0) {
+      setProssimoEvento(data[0]);
+    }
+  };
+
+  const fetchGiocatori = async () => {
+    const { data } = await supabase
+      .from('profili_utenti')
+      .select('*')
+      .order('nome_completo', { ascending: true });
+    
+    if (data) setGiocatori(data);
+  };
+
+  const fetchPosts = async () => {
+    // Simulazione posts
+    setPosts([
+      {
+        id: 1,
+        autore: 'Admin',
+        contenuto: 'Nuovo torneo in arrivo! Preparatevi! 🏆',
+        timestamp: new Date(),
+        likes: 12,
+        commenti: 3
+      },
+      {
+        id: 2, 
+        autore: 'Coach',
+        contenuto: 'Ottima sessione di allenamento oggi! 💪',
+        timestamp: new Date(Date.now() - 3600000),
+        likes: 8,
+        commenti: 1
+      }
+    ]);
+  };
+
+  const creaPost = () => {
+    if (nuovoPost.trim()) {
+      const post = {
+        id: posts.length + 1,
+        autore: 'Tu',
+        contenuto: nuovoPost,
+        timestamp: new Date(),
+        likes: 0,
+        commenti: 0
+      };
+      setPosts([post, ...posts]);
+      setNuovoPost('');
+    }
+  };
 
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
-      padding: '16px',
-      color: 'white',
-      fontFamily: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-    }}>
-      
-      {/* HEADER */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '32px',
-        padding: '32px 20px',
-        background: 'rgba(255, 255, 255, 0.04)',
-        borderRadius: '24px',
-        backdropFilter: 'blur(30px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
-      }}>
-        <img 
-          src="/Scarpari%20Inside%20simplelogo_2023.png" 
-          alt="Scarpari Inside Logo" 
-          style={{ 
-            height: '100px', 
-            marginBottom: '20px',
-            borderRadius: '20px',
-            boxShadow: '0 12px 40px rgba(0, 200, 255, 0.6)',
-            border: '2px solid rgba(0, 200, 255, 0.5)'
-          }} 
-        />
-        
-        <h1 style={{ 
-          fontSize: '2.4rem', 
-          fontWeight: '800',
-          letterSpacing: '-0.5px',
-          background: 'linear-gradient(135deg, #ffffff 0%, #00d4ff 100%)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          textShadow: '0 4px 20px rgba(0, 212, 255, 0.4)',
-          fontFamily: '"SF Pro Display", -apple-system, sans-serif'
-        }}>
-          SCARPARI INSIDE
-        </h1>
-        
-        <p style={{ 
-          fontSize: '1.1rem', 
-          opacity: 0.8,
-          fontWeight: '400',
-          letterSpacing: '0.3px',
-          fontFamily: '"SF Pro Display", sans-serif'
-        }}>
-          Database Eventi Attivo 🗄️
-        </p>
-      </div>
-
-      {/* GRIGLIA PRINCIPALE */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        maxWidth: '500px',
-        margin: '0 auto'
-      }}>
-
-        {/* CARD PROSSIMA PARTITA */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          padding: '26px',
-          borderRadius: '22px',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.35)'
-        }}>
-          <h3 style={{ 
-            marginBottom: '22px', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '14px',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            letterSpacing: '-0.3px'
-          }}>
-            <span style={{
-              background: 'linear-gradient(135deg, #32d74b, #64d2ff)',
-              borderRadius: '12px',
-              padding: '10px',
-              fontSize: '20px',
-              boxShadow: '0 6px 20px rgba(100, 210, 255, 0.4)'
-            }}>⏳</span>
-            Prossima Partita
-          </h3>
-          
-          <div style={{ lineHeight: '1.9', marginBottom: '24px', fontSize: '1.05rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <span style={{ opacity: '0.8', fontSize: '18px' }}>📅</span>
-              <div>
-                <div style={{ fontWeight: '600' }}>Sabato 15 Novembre</div>
-                <div style={{ fontSize: '0.95rem', opacity: '0.7' }}>Tra 3 giorni</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <span style={{ opacity: '0.8', fontSize: '18px' }}>🕘</span>
-              <span>Ore 21:00 • 2 ore</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <span style={{ opacity: '0.8', fontSize: '18px' }}>📍</span>
-              <span>Campo Comunale "R. Sport"</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ opacity: '0.8', fontSize: '18px' }}>👥</span>
-              <div>
-                <div style={{ fontWeight: '600' }}>8/12 confermati</div>
-                <div style={{ fontSize: '0.95rem', opacity: '0.7' }}>4 posti disponibili</div>
-              </div>
-            </div>
-          </div>
-          
-          <button style={{
-            width: '100%',
-            padding: '18px',
-            background: 'linear-gradient(135deg, #32d74b 0%, #30d475 100%)',
-            border: 'none',
-            borderRadius: '14px',
-            color: 'white',
-            fontSize: '17px',
-            fontWeight: '600',
-            boxShadow: '0 8px 24px rgba(50, 215, 75, 0.4)',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            letterSpacing: '0.2px'
-          }}>
-            ✅ Conferma Partecipazione
-          </button>
+    <div className="app">
+      {/* HEADER CON GLASS EFFECT */}
+      <header className="dashboard-header">
+        <div className="logo-container">
+          <img 
+            src="/Scarpari Inside simplelogo_2023.png" 
+            alt="Scarpari Inside" 
+            className="main-logo"
+          />
         </div>
+      </header>
 
-        {/* GRIGLIA AZIONI RAPIDE */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          padding: '26px',
-          borderRadius: '22px',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.35)'
-        }}>
-          <h3 style={{ 
-            marginBottom: '22px',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            letterSpacing: '-0.3px'
-          }}>🚀 Azioni Rapide</h3>
+      <main className="dashboard-main">
+        {/* SEZIONE PROSSIMO EVENTO */}
+        <section className="sezione">
+          <h2>🎯 Prossimo Evento</h2>
+          <div className="card glass">
+            {prossimoEvento ? (
+              <div className="evento-card">
+                <h3>{prossimoEvento.nome_evento}</h3>
+                <p>📅 {new Date(prossimoEvento.data_ora).toLocaleDateString('it-IT')}</p>
+                <p>⏰ {new Date(prossimoEvento.data_ora).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p>📍 {prossimoEvento.luogo}</p>
+                <button className="btn-primario">Partecipa</button>
+              </div>
+            ) : (
+              <p>Nessun evento in programma</p>
+            )}
+          </div>
+        </section>
+
+        {/* SEZIONE FEED SOCIAL */}
+        <section className="sezione">
+          <h2>💬 Feed</h2>
           
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '14px'
-          }}>
-            {[
-              { icon: '📅', label: 'Nuova Partita' },
-              { icon: '👥', label: 'Giocatori' },
-              { icon: '🏆', label: 'Classifica' },
-              { icon: '⚙️', label: 'Impostazioni' }
-            ].map((item, index) => (
-              <button 
-                key={index}
-                onClick={() => {
-                  if (item.label === 'Nuova Partita') {
-                    document.getElementById('form-nuovo-evento')?.scrollIntoView({ 
-                      behavior: 'smooth' 
-                    })
-                  } else {
-                    alert(`${item.label} - Funzionalità in sviluppo!`)
-                  }
-                }}
-                style={{
-                  padding: '20px 14px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.18)',
-                  borderRadius: '16px',
-                  color: 'white',
-                  fontSize: '15px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '12px',
-                  letterSpacing: '0.1px'
-                }}
-              >
-                <span style={{ 
-                  fontSize: '24px',
-                  filter: 'drop-shadow(0 4px 12px rgba(255,255,255,0.3))'
-                }}>
-                  {item.icon}
+          {/* CREA POST */}
+          <div className="card glass crea-post">
+            <textarea 
+              value={nuovoPost}
+              onChange={(e) => setNuovoPost(e.target.value)}
+              placeholder="Condividi qualcosa con la squadra..."
+              rows="3"
+            />
+            <button onClick={creaPost} className="btn-primario">Pubblica</button>
+          </div>
+
+          {/* LISTA POSTS */}
+          {posts.map(post => (
+            <div key={post.id} className="card glass post">
+              <div className="post-header">
+                <strong>{post.autore}</strong>
+                <span className="timestamp">
+                  {new Date(post.timestamp).toLocaleTimeString('it-IT')}
                 </span>
-                <span style={{ 
-                  fontSize: '15px',
-                  fontWeight: '500'
-                }}>
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* STATISTICHE PERSONALI */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          padding: '26px',
-          borderRadius: '22px',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.35)'
-        }}>
-          <h3 style={{ 
-            marginBottom: '22px',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            letterSpacing: '-0.3px'
-          }}>📊 Statistiche Personali</h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '16px'
-          }}>
-            {[
-              { value: '12', label: 'Partite', emoji: '⚽', trend: '+2' },
-              { value: '8', label: 'Vittorie', emoji: '🎯', trend: '+3' },
-              { value: '15', label: 'Gol', emoji: '⭐', trend: '+5' },
-              { value: '3°', label: 'Posizione', emoji: '🏆', trend: '↑1' }
-            ].map((stat, index) => (
-              <div key={index} style={{
-                textAlign: 'center',
-                padding: '20px 16px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                borderRadius: '16px',
-                border: '1px solid rgba(255, 255, 255, 0.12)'
-              }}>
-                <div style={{ 
-                  fontSize: '1.8rem', 
-                  fontWeight: '700',
-                  background: 'linear-gradient(135deg, #ffffff, #c0c0c0)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  color: 'transparent',
-                  marginBottom: '6px',
-                  letterSpacing: '-0.5px'
-                }}>
-                  {stat.value}
-                </div>
-                <div style={{ 
-                  fontSize: '0.85rem', 
-                  opacity: 0.8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  fontWeight: '500',
-                  marginBottom: '4px'
-                }}>
-                  <span style={{ fontSize: '16px' }}>{stat.emoji}</span>
-                  <span>{stat.label}</span>
-                </div>
-                <div style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#32d74b',
-                  fontWeight: '600'
-                }}>
-                  {stat.trend}
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* FORM NUOVO EVENTO */}
-        <div 
-          id="form-nuovo-evento"
-          style={{
-            background: 'rgba(255, 255, 255, 0.08)',
-            padding: '26px',
-            borderRadius: '22px',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 16px 48px rgba(0, 0, 0, 0.35)'
-          }}
-        >
-          <h3 style={{ 
-            marginBottom: '22px',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            letterSpacing: '-0.3px'
-          }}>📅 Crea Nuova Partita</h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              type="text"
-              placeholder="Nome partita (es: Serata Calcetto)"
-              value={nuovoEvento.nome_evento}
-              onChange={(e) => setNuovoEvento({...nuovoEvento, nome_evento: e.target.value})}
-              style={{
-                padding: '14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                fontSize: '16px'
-              }}
-            />
-            
-            <input
-              type="datetime-local"
-              value={nuovoEvento.data_ora}
-              onChange={(e) => setNuovoEvento({...nuovoEvento, data_ora: e.target.value})}
-              style={{
-                padding: '14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                fontSize: '16px'
-              }}
-            />
-            
-            <input
-              type="text"
-              placeholder="Luogo (es: Campo Comunale)"
-              value={nuovoEvento.luogo}
-              onChange={(e) => setNuovoEvento({...nuovoEvento, luogo: e.target.value})}
-              style={{
-                padding: '14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.2)',
-                background: 'rgba(255,255,255,0.1)',
-                color: 'white',
-                fontSize: '16px'
-              }}
-            />
-            
-            <button 
-              onClick={creaEvento}
-              style={{
-                padding: '16px',
-                background: 'linear-gradient(135deg, #00d4ff 0%, #0078d4 100%)',
-                border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              🚀 Crea Evento
-            </button>
-          </div>
-        </div>
-
-        {/* LISTA EVENTI */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.08)',
-          padding: '26px',
-          borderRadius: '22px',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.35)'
-        }}>
-          <h3 style={{ 
-            marginBottom: '22px',
-            fontSize: '1.3rem',
-            fontWeight: '600',
-            letterSpacing: '-0.3px'
-          }}>📋 Eventi Programmati</h3>
-          
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-              <div>Caricamento eventi...</div>
+              <p className="post-contenuto">{post.contenuto}</p>
+              <div className="post-azioni">
+                <button>👍 {post.likes}</button>
+                <button>💬 {post.commenti}</button>
+                <button>↗️ Condividi</button>
+              </div>
             </div>
-          ) : eventi.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', opacity: 0.7 }}>
-              <div>Nessun evento programmato</div>
-              <div style={{ fontSize: '0.9rem', marginTop: '8px' }}>Crea il primo evento!</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {eventi.map((evento) => (
-                <div key={evento.id} style={{
-                  padding: '18px',
-                  background: 'rgba(255,255,255,0.06)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}>
-                  <div style={{ fontWeight: '600', fontSize: '1.1rem', marginBottom: '8px' }}>
-                    {evento.nome_evento}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', opacity: 0.8, lineHeight: '1.5' }}>
-                    <div>📅 {new Date(evento.data_ora).toLocaleString('it-IT')}</div>
-                    <div>📍 {evento.luogo}</div>
-                    <div>👥 Max {evento.max_partecipanti} giocatori</div>
+          ))}
+        </section>
+
+        {/* SEZIONE GIOCATORI */}
+        <section className="sezione">
+          <h2>👥 Giocatori ({giocatori.length})</h2>
+          <div className="card glass">
+            <div className="giocatori-grid">
+              {giocatori.slice(0, 6).map(giocatore => (
+                <div key={giocatore.id} className="giocatore-card">
+                  <div className="avatar">{giocatore.nome_completo.charAt(0)}</div>
+                  <div className="giocatore-info">
+                    <strong>{giocatore.nome_completo}</strong>
+                    <span className="livello">{giocatore.livello_gioco}</span>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+            {giocatori.length > 6 && (
+              <button className="btn-secondario">Vedi tutti ({giocatori.length})</button>
+            )}
+          </div>
+        </section>
 
-      </div>
+        {/* SEZIONE CLASSIFICA */}
+        <section className="sezione">
+          <h2>🏆 Classifica</h2>
+          <div className="card glass">
+            <p>Classifica in arrivo...</p>
+          </div>
+        </section>
 
+        {/* MENU RAPIDO */}
+        <section className="sezione">
+          <h2>⚡ Menu Rapido</h2>
+          <div className="grid-menu">
+            <button className="card glass menu-btn">
+              📅 Crea Evento
+            </button>
+            <button className="card glass menu-btn">
+              👥 Gestisci Giocatori
+            </button>
+            <button className="card glass menu-btn">
+              ⚙️ Impostazioni
+            </button>
+            <button className="card glass menu-btn">
+              📊 Statistiche
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
