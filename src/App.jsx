@@ -2,6 +2,14 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 
+// Helper function per colori avatar
+function getColorFromName(name) {
+  const colors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#475569'];
+  const index = name.length % colors.length;
+  return colors[index];
+}
+
+// Componente Homepage - Stile Appito
 function HomePage({ onNavigate }) {
   const menuItems = [
     { 
@@ -83,7 +91,7 @@ function HomePage({ onNavigate }) {
         </div>
       </main>
 
-      {/* NAVIGAZIONE INFERIORE (opzionale) */}
+      {/* NAVIGAZIONE INFERIORE */}
       <nav className="bottom-nav">
         <button className="nav-item active">
           <span>🏠</span>
@@ -106,8 +114,85 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Giocatori - Stile Appito
-function GiocatoriPage({ onBack }) {
+// Componente Dettaglio Giocatore
+function DettaglioGiocatorePage({ onBack, giocatoreId }) {
+  const [giocatore, setGiocatore] = useState(null);
+
+  useEffect(() => {
+    fetchGiocatore();
+  }, [giocatoreId]);
+
+  const fetchGiocatore = async () => {
+    const { data } = await supabase
+      .from('profili_utenti')
+      .select('*')
+      .eq('id', giocatoreId)
+      .single();
+    
+    if (data) setGiocatore(data);
+  };
+
+  if (!giocatore) return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Caricamento...</h1>
+      </header>
+    </div>
+  );
+
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Profilo Giocatore</h1>
+        <div className="header-actions">
+          <button className="icon-button">✏️</button>
+        </div>
+      </header>
+
+      <main className="page-content">
+        <div className="profile-header">
+          <div 
+            className="profile-avatar"
+            style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}
+          >
+            {giocatore.nome_completo.charAt(0)}
+          </div>
+          <h2 className="profile-name">{giocatore.nome_completo}</h2>
+          <div className="profile-badge">{giocatore.livello_gioco}</div>
+        </div>
+
+        <div className="info-grid">
+          <div className="info-card">
+            <h3>📧 Email</h3>
+            <p>{giocatore.email || 'Non specificata'}</p>
+          </div>
+          <div className="info-card">
+            <h3>📞 Telefono</h3>
+            <p>{giocatore.telefono || 'Non specificato'}</p>
+          </div>
+          <div className="info-card">
+            <h3>🎯 Ruoli</h3>
+            <div className="ruoli-list">
+              {giocatore.portiere && <span className="ruolo">Portiere</span>}
+              {giocatore.difensore && <span className="ruolo">Difensore</span>}
+              {giocatore.centrocampista && <span className="ruolo">Centrocampista</span>}
+              {giocatore.attaccante && <span className="ruolo">Attaccante</span>}
+            </div>
+          </div>
+          <div className="info-card">
+            <h3>📅 Data Iscrizione</h3>
+            <p>{giocatore.data_iscrizione ? new Date(giocatore.data_iscrizione).toLocaleDateString('it-IT') : 'Non specificata'}</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Componente Giocatori
+function GiocatoriPage({ onBack, onNavigate }) {
   const [giocatori, setGiocatori] = useState([]);
 
   useEffect(() => {
@@ -158,12 +243,14 @@ function GiocatoriPage({ onBack }) {
           <h2 className="section-title">Tutti i giocatori</h2>
           <div className="items-list">
             {giocatori.map(giocatore => (
-              <div key={giocatore.id} className="list-item">
+              <div 
+                key={giocatore.id} 
+                className="list-item"
+                onClick={() => onNavigate('dettaglio-giocatore', giocatore.id)}
+              >
                 <div 
                   className="item-avatar"
-                  style={{ 
-                    backgroundColor: getColorFromName(giocatore.nome_completo)
-                  }}
+                  style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}
                 >
                   {giocatore.nome_completo.charAt(0)}
                 </div>
@@ -183,24 +270,103 @@ function GiocatoriPage({ onBack }) {
   );
 }
 
-// Helper function per colori avatar
-function getColorFromName(name) {
-  const colors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#475569'];
-  const index = name.length % colors.length;
-  return colors[index];
+// Componente Eventi
+function EventiPage({ onBack }) {
+  const [eventi, setEventi] = useState([]);
+
+  useEffect(() => {
+    fetchEventi();
+  }, []);
+
+  const fetchEventi = async () => {
+    const { data } = await supabase
+      .from('eventi')
+      .select('*')
+      .order('data_ora', { ascending: true });
+    
+    if (data) setEventi(data);
+  };
+
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Eventi</h1>
+        <div className="header-actions">
+          <button className="icon-button">🔍</button>
+          <button className="icon-button">➕</button>
+        </div>
+      </header>
+
+      <main className="page-content">
+        <div className="stats-cards">
+          <div className="stat-card">
+            <span className="stat-number">{eventi.length}</span>
+            <span className="stat-label">Totali</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {eventi.filter(e => new Date(e.data_ora) > new Date()).length}
+            </span>
+            <span className="stat-label">Futuri</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {eventi.filter(e => new Date(e.data_ora) < new Date()).length}
+            </span>
+            <span className="stat-label">Passati</span>
+          </div>
+        </div>
+
+        <div className="list-section">
+          <h2 className="section-title">Tutti gli eventi</h2>
+          <div className="items-list">
+            {eventi.map(evento => (
+              <div key={evento.id} className="list-item">
+                <div className="evento-icon">📅</div>
+                <div className="item-content">
+                  <h3 className="item-title">{evento.nome_evento}</h3>
+                  <p className="item-subtitle">
+                    {new Date(evento.data_ora).toLocaleDateString('it-IT')} - {evento.luogo}
+                  </p>
+                </div>
+                <div className="item-badge evento">
+                  {new Date(evento.data_ora) > new Date() ? 'Prossimo' : 'Passato'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
 }
 
-// [ALTRI COMPONENTI PAGINE...]
-
+// Componente principale con routing
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
+  const [selectedGiocatoreId, setSelectedGiocatoreId] = useState(null);
+
+  const handleNavigate = (page, data = null) => {
+    if (page === 'dettaglio-giocatore') {
+      setSelectedGiocatoreId(data);
+    }
+    setCurrentPage(page);
+  };
+
+  const handleBack = () => {
+    setCurrentPage('home');
+    setSelectedGiocatoreId(null);
+  };
 
   const renderPage = () => {
     switch (currentPage) {
       case 'giocatori':
-        return <GiocatoriPage onBack={() => setCurrentPage('home')} />;
+        return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
+      case 'dettaglio-giocatore':
+        return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi':
-        return <EventiPage onBack={() => setCurrentPage('home')} />;
+        return <EventiPage onBack={handleBack} />;
       case 'home':
       default:
         return <HomePage onNavigate={setCurrentPage} />;
