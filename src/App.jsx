@@ -65,14 +65,9 @@ function HomePage({ onNavigate }) {
 
   return (
     <div className="homepage">
+      {/* HEADER SENZA LOGO - SOLO TITOLO */}
       <header className="dashboard-header">
-        <div className="logo-container">
-          <img 
-            src="/Scarpari Inside simplelogo_2023.png" 
-            alt="Scarpari Inside" 
-            className="main-logo"
-          />
-        </div>
+        <h1 className="app-title">Scarpari Inside</h1>
       </header>
 
       <div className="carosello-container">
@@ -134,9 +129,85 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// [MANTIENI GLI STESSI COMPONENTI PAGINE DI PRIMA...]
-// GiocatoriPage, EventiPage, etc...
+// Componente Giocatori
+function GiocatoriPage({ onBack }) {
+  const [giocatori, setGiocatori] = useState([]);
 
+  useEffect(() => {
+    fetchGiocatori();
+  }, []);
+
+  const fetchGiocatori = async () => {
+    const { data } = await supabase
+      .from('profili_utenti')
+      .select('*')
+      .order('nome_completo', { ascending: true });
+    
+    if (data) setGiocatori(data);
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <button onClick={onBack} className="btn-back">← Indietro</button>
+        <h1>👥 Tutti i Giocatori</h1>
+      </div>
+      
+      <div className="giocatori-lista">
+        {giocatori.map(giocatore => (
+          <div key={giocatore.id} className="giocatore-card">
+            <div className="avatar">{giocatore.nome_completo.charAt(0)}</div>
+            <div className="giocatore-info">
+              <strong>{giocatore.nome_completo}</strong>
+              <span className="email">{giocatore.email}</span>
+              <span className="livello">{giocatore.livello_gioco}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Componente Eventi
+function EventiPage({ onBack }) {
+  const [eventi, setEventi] = useState([]);
+
+  useEffect(() => {
+    fetchEventi();
+  }, []);
+
+  const fetchEventi = async () => {
+    const { data } = await supabase
+      .from('eventi')
+      .select('*')
+      .order('data_ora', { ascending: true });
+    
+    if (data) setEventi(data);
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header">
+        <button onClick={onBack} className="btn-back">← Indietro</button>
+        <h1>📅 Eventi</h1>
+      </div>
+      
+      <div className="eventi-lista">
+        {eventi.map(evento => (
+          <div key={evento.id} className="evento-card">
+            <h3>{evento.nome_evento}</h3>
+            <p>📅 {new Date(evento.data_ora).toLocaleDateString('it-IT')}</p>
+            <p>⏰ {new Date(evento.data_ora).toLocaleTimeString('it-IT')}</p>
+            <p>📍 {evento.luogo}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Componente principale con routing
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
 
