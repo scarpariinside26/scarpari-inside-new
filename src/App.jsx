@@ -3,149 +3,194 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
 function HomePage({ onNavigate }) {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  
-  const slides = [
+  const menuItems = [
     { 
       id: 'eventi', 
       icon: '📅', 
-      title: 'Eventi & Partite', 
-      description: 'Crea e gestisci gli eventi della squadra',
-      color: '#8B5CF6'
+      title: 'Eventi', 
+      subtitle: 'Crea e gestisci eventi',
+      color: '#2563eb'
     },
     { 
       id: 'giocatori', 
       icon: '👥', 
       title: 'Giocatori', 
-      description: 'Gestisci tutti i giocatori e i loro profili',
-      color: '#00D4FF'
+      subtitle: 'Gestisci la squadra',
+      color: '#dc2626'
     },
     { 
       id: 'classifica', 
       icon: '🏆', 
       title: 'Classifica', 
-      description: 'Vedi le statistiche e la classifica giocatori',
-      color: '#EC4899'
+      subtitle: 'Statistiche e ranking',
+      color: '#ea580c'
     },
     { 
       id: 'feed', 
       icon: '💬', 
-      title: 'Feed Social', 
-      description: 'Condividi news e aggiornamenti con la squadra',
-      color: '#10B981'
+      title: 'Feed', 
+      subtitle: 'News e aggiornamenti',
+      color: '#16a34a'
     },
     { 
       id: 'statistiche', 
       icon: '📊', 
       title: 'Statistiche', 
-      description: 'Analisi e metriche delle performance',
-      color: '#F59E0B'
+      subtitle: 'Analisi performance',
+      color: '#7c3aed'
     },
     { 
       id: 'impostazioni', 
       icon: '⚙️', 
       title: 'Impostazioni', 
-      description: 'Gestisci le preferenze del sistema',
-      color: '#6B7280'
+      subtitle: 'Preferenze sistema',
+      color: '#475569'
     }
   ];
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const goToSlide = (index) => {
-    setCurrentSlide(index);
-  };
-
   return (
-    <div className="homepage">
-      {/* HEADER COMPLETAMENTE RIMOSSO */}
-      
-      <div className="carosello-3d-cerchio">
-        <button className="carosello-arrow left" onClick={prevSlide}>
-          ‹
-        </button>
-
-        <div className="cerchio-container">
-          {slides.map((slide, index) => {
-            const angle = (index / slides.length) * 2 * Math.PI;
-            const radius = 180;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const rotationY = (angle * 180) / Math.PI;
-            
-            const isActive = index === currentSlide;
-            const distanceFromActive = Math.min(
-              Math.abs(index - currentSlide),
-              Math.abs(index - currentSlide + slides.length),
-              Math.abs(index - currentSlide - slides.length)
-            );
-
-            return (
-              <div
-                key={slide.id}
-                className={`slide-3d-cerchio ${isActive ? 'active' : ''}`}
-                style={{
-                  '--x': `${x}px`,
-                  '--z': `${z}px`,
-                  '--rotateY': `${rotationY}deg`,
-                  '--opacity': Math.max(1 - distanceFromActive * 0.4, 0.3),
-                  '--scale': Math.max(1 - distanceFromActive * 0.3, 0.6),
-                }}
-                onClick={() => isActive && onNavigate(slide.id)}
-              >
-                <div 
-                  className="slide-card-cerchio"
-                  style={{ 
-                    borderLeftColor: slide.color,
-                    backgroundColor: `rgba(255, 255, 255, ${isActive ? 0.15 : 0.08})`
-                  }}
-                >
-                  <div className="slide-icon" style={{ color: slide.color }}>
-                    {slide.icon}
-                  </div>
-                  {isActive && (
-                    <>
-                      <h2 className="slide-title">{slide.title}</h2>
-                      <p className="slide-description">{slide.description}</p>
-                      <button 
-                        className="slide-button"
-                        style={{ backgroundColor: slide.color }}
-                      >
-                        Apri {slide.title}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+    <div className="appito-home">
+      {/* HEADER MINIMAL */}
+      <header className="appito-header">
+        <div className="header-content">
+          <h1 className="app-name">Scarpari</h1>
+          <div className="user-avatar">SI</div>
         </div>
+      </header>
 
-        <button className="carosello-arrow right" onClick={nextSlide}>
-          ›
+      {/* GRIGLIA PULITA */}
+      <main className="appito-main">
+        <div className="grid-menu">
+          {menuItems.map((item) => (
+            <div
+              key={item.id}
+              className="menu-card"
+              onClick={() => onNavigate(item.id)}
+            >
+              <div 
+                className="card-icon"
+                style={{ backgroundColor: item.color }}
+              >
+                {item.icon}
+              </div>
+              <div className="card-content">
+                <h3 className="card-title">{item.title}</h3>
+                <p className="card-subtitle">{item.subtitle}</p>
+              </div>
+              <div className="card-arrow">›</div>
+            </div>
+          ))}
+        </div>
+      </main>
+
+      {/* NAVIGAZIONE INFERIORE (opzionale) */}
+      <nav className="bottom-nav">
+        <button className="nav-item active">
+          <span>🏠</span>
+          <span>Home</span>
         </button>
-      </div>
-
-      <div className="carosello-indicators">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            className={`indicator ${index === currentSlide ? 'active' : ''}`}
-            onClick={() => goToSlide(index)}
-          />
-        ))}
-      </div>
+        <button className="nav-item">
+          <span>📅</span>
+          <span>Eventi</span>
+        </button>
+        <button className="nav-item">
+          <span>👥</span>
+          <span>Giocatori</span>
+        </button>
+        <button className="nav-item">
+          <span>👤</span>
+          <span>Profilo</span>
+        </button>
+      </nav>
     </div>
   );
 }
 
-// [MANTIENI GLI ALTRI COMPONENTI...]
+// Componente Giocatori - Stile Appito
+function GiocatoriPage({ onBack }) {
+  const [giocatori, setGiocatori] = useState([]);
+
+  useEffect(() => {
+    fetchGiocatori();
+  }, []);
+
+  const fetchGiocatori = async () => {
+    const { data } = await supabase
+      .from('profili_utenti')
+      .select('*')
+      .order('nome_completo', { ascending: true });
+    
+    if (data) setGiocatori(data);
+  };
+
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Giocatori</h1>
+        <div className="header-actions">
+          <button className="icon-button">🔍</button>
+          <button className="icon-button">➕</button>
+        </div>
+      </header>
+
+      <main className="page-content">
+        <div className="stats-cards">
+          <div className="stat-card">
+            <span className="stat-number">{giocatori.length}</span>
+            <span className="stat-label">Totali</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {giocatori.filter(g => g.livello_gioco === 'avanzato').length}
+            </span>
+            <span className="stat-label">Avanzati</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {giocatori.filter(g => g.livello_gioco === 'intermedio').length}
+            </span>
+            <span className="stat-label">Intermedi</span>
+          </div>
+        </div>
+
+        <div className="list-section">
+          <h2 className="section-title">Tutti i giocatori</h2>
+          <div className="items-list">
+            {giocatori.map(giocatore => (
+              <div key={giocatore.id} className="list-item">
+                <div 
+                  className="item-avatar"
+                  style={{ 
+                    backgroundColor: getColorFromName(giocatore.nome_completo)
+                  }}
+                >
+                  {giocatore.nome_completo.charAt(0)}
+                </div>
+                <div className="item-content">
+                  <h3 className="item-title">{giocatore.nome_completo}</h3>
+                  <p className="item-subtitle">{giocatore.email}</p>
+                </div>
+                <div className="item-badge">
+                  {giocatore.livello_gioco}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Helper function per colori avatar
+function getColorFromName(name) {
+  const colors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#475569'];
+  const index = name.length % colors.length;
+  return colors[index];
+}
+
+// [ALTRI COMPONENTI PAGINE...]
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -163,7 +208,7 @@ function App() {
   };
 
   return (
-    <div className={`app ${currentPage !== 'home' ? 'page-active' : ''}`}>
+    <div className="appito-app">
       {renderPage()}
     </div>
   );
