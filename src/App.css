@@ -396,6 +396,107 @@ body {
   font-weight: 500;
 }
 
+/* SELEZIONE POSIZIONE AVANZATA */
+.posizione-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.posizione-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-modifica,
+.btn-salva,
+.btn-annulla {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-modifica:hover {
+  background: #f0fdf4;
+  transform: scale(1.1);
+}
+
+.btn-salva:hover:not(:disabled) {
+  background: #dcfce7;
+  transform: scale(1.1);
+}
+
+.btn-salva:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-annulla:hover {
+  background: #fef2f2;
+  transform: scale(1.1);
+}
+
+.posizione-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.input-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.select-provincia {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.select-provincia:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input-ricerca-comune {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: white;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.input-ricerca-comune:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
 /* DROPDOWN COMUNI MIGLIORATO */
 .dropdown-comuni {
   position: absolute;
@@ -430,130 +531,4 @@ body {
 }
 
 .dropdown-item.selected {
-  background: #eff6ff;
-  color: #1e40af;
-  font-weight: 500;
-}
-
-.dropdown-item.selected:hover {
-  background: #3b82f6;
-  color: white;
-}
-
-/* Migliora l'input di ricerca */
-.input-ricerca-comune {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  transition: all 0.2s ease;
-  width: 100%;
-}
-
-.input-ricerca-comune:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Comune selezionato */
-.comune-selezionato {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: #166534;
-  border-left: 4px solid #22c55e;
-}
-
-/* RUOLI */
-.ruoli-list {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.ruolo {
-  background: #f3f4f6;
-  color: #374151;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-/* EVENTI */
-.evento-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #eff6ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-}
-
-.item-badge.evento {
-  background: #f0fdf4;
-  color: #16a34a;
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .appito-main {
-    padding: 1rem;
-  }
-  
-  .grid-menu {
-    grid-template-columns: 1fr;
-  }
-  
-  .page-content {
-    padding: 1rem;
-    padding-bottom: 5rem;
-  }
-  
-  .stats-cards {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .menu-card {
-    padding: 1.25rem;
-  }
-  
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .dropdown-comuni {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 1rem;
-    right: 1rem;
-    max-height: 50vh;
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-cards {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-  
-  .stat-card {
-    padding: 1rem 0.5rem;
-  }
-  
-  .stat-number {
-    font-size: 1.5rem;
-  }
-  
-  .posizione-actions {
-    flex-direction: column;
-  }
-}
+  background
