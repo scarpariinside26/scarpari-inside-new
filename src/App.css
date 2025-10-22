@@ -1,0 +1,257 @@
+/* RESET E BASE */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+/* GLASS EFFECT HEADER */
+.dashboard-header {
+  text-align: center;
+  padding: 2rem 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-container {
+  margin: 0 auto;
+}
+
+.main-logo {
+  height: 70px;
+  width: auto;
+  max-width: 280px;
+}
+
+/* LAYOUT PRINCIPALE */
+.dashboard-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.sezione {
+  margin-bottom: 3rem;
+}
+
+.sezione h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* CARDS GLASS */
+.card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* BOTTONI */
+.btn-primario {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.btn-primario:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.btn-secondario {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* PROSSIMO EVENTO */
+.evento-card h3 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.evento-card p {
+  margin-bottom: 0.5rem;
+  opacity: 0.8;
+}
+
+/* FEED SOCIAL */
+.crea-post {
+  margin-bottom: 1.5rem;
+}
+
+.crea-post textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  color: white;
+  font-family: inherit;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.crea-post textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.post {
+  margin-bottom: 1rem;
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.timestamp {
+  font-size: 0.875rem;
+  opacity: 0.6;
+}
+
+.post-contenuto {
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.post-azioni {
+  display: flex;
+  gap: 1rem;
+}
+
+.post-azioni button {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.post-azioni button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* GIOCATORI */
+.giocatori-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.giocatore-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.giocatore-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B5CF6, #00D4FF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.giocatore-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.livello {
+  font-size: 0.875rem;
+  opacity: 0.7;
+  text-transform: capitalize;
+}
+
+/* MENU RAPIDO */
+.grid-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.menu-btn {
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.menu-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .dashboard-main {
+    padding: 1rem;
+  }
+  
+  .giocatori-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-menu {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .main-logo {
+    height: 60px;
+  }
+}
