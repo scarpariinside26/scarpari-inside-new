@@ -64,51 +64,62 @@ function HomePage({ onNavigate }) {
 
   return (
     <div className="homepage">
-      <header className="dashboard-header">
-        <h1 className="app-title">Scarpari Inside</h1>
-      </header>
-
-      <div className="carosello-3d">
+      {/* HEADER COMPLETAMENTE RIMOSSO */}
+      
+      <div className="carosello-3d-cerchio">
         <button className="carosello-arrow left" onClick={prevSlide}>
           ‹
         </button>
 
-        <div className="carosello-track">
+        <div className="cerchio-container">
           {slides.map((slide, index) => {
-            const offset = (index - currentSlide + slides.length) % slides.length;
-            const position = offset > slides.length / 2 ? offset - slides.length : offset;
+            const angle = (index / slides.length) * 2 * Math.PI;
+            const radius = 180;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const rotationY = (angle * 180) / Math.PI;
             
+            const isActive = index === currentSlide;
+            const distanceFromActive = Math.min(
+              Math.abs(index - currentSlide),
+              Math.abs(index - currentSlide + slides.length),
+              Math.abs(index - currentSlide - slides.length)
+            );
+
             return (
               <div
                 key={slide.id}
-                className={`carosello-slide-3d ${position === 0 ? 'active' : ''}`}
+                className={`slide-3d-cerchio ${isActive ? 'active' : ''}`}
                 style={{
-                  '--offset': position,
-                  '--abs-offset': Math.abs(position),
-                  '--direction': Math.sign(position),
-                  '--opacity': Math.max(1 - Math.abs(position) * 0.3, 0.2),
-                  '--scale': Math.max(1 - Math.abs(position) * 0.2, 0.6),
-                  '--rotateY': position * 25,
-                  '--z': -Math.abs(position) * 100
+                  '--x': `${x}px`,
+                  '--z': `${z}px`,
+                  '--rotateY': `${rotationY}deg`,
+                  '--opacity': Math.max(1 - distanceFromActive * 0.4, 0.3),
+                  '--scale': Math.max(1 - distanceFromActive * 0.3, 0.6),
                 }}
-                onClick={() => position === 0 && onNavigate(slide.id)}
+                onClick={() => isActive && onNavigate(slide.id)}
               >
                 <div 
-                  className="slide-card-3d"
-                  style={{ borderLeftColor: slide.color }}
+                  className="slide-card-cerchio"
+                  style={{ 
+                    borderLeftColor: slide.color,
+                    backgroundColor: `rgba(255, 255, 255, ${isActive ? 0.15 : 0.08})`
+                  }}
                 >
                   <div className="slide-icon" style={{ color: slide.color }}>
                     {slide.icon}
                   </div>
-                  <h2 className="slide-title">{slide.title}</h2>
-                  <p className="slide-description">{slide.description}</p>
-                  {position === 0 && (
-                    <button 
-                      className="slide-button"
-                      style={{ backgroundColor: slide.color }}
-                    >
-                      Apri {slide.title}
-                    </button>
+                  {isActive && (
+                    <>
+                      <h2 className="slide-title">{slide.title}</h2>
+                      <p className="slide-description">{slide.description}</p>
+                      <button 
+                        className="slide-button"
+                        style={{ backgroundColor: slide.color }}
+                      >
+                        Apri {slide.title}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -134,7 +145,7 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// [MANTIENI GLI ALTRI COMPONENTI PAGINE...]
+// [MANTIENI GLI ALTRI COMPONENTI...]
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
