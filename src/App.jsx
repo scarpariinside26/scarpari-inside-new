@@ -543,12 +543,21 @@ function GiocatoriPage({ onBack, onNavigate }) {
   }, []);
 
   const fetchGiocatori = async () => {
-    const { data } = await supabase
-      .from('profili_utenti')
+    // 🔥 CORREGGI LA QUERY: usa 'giocatori' invece di 'profili_utenti'
+    const { data, error } = await supabase
+      .from('giocatori')
       .select('*')
       .order('nome_completo', { ascending: true });
     
-    if (data) setGiocatori(data);
+    if (error) {
+      console.error('Errore nel caricamento giocatori:', error);
+      return;
+    }
+    
+    if (data) {
+      console.log('Giocatori caricati:', data); // Debug
+      setGiocatori(data);
+    }
   };
 
   return (
@@ -564,29 +573,63 @@ function GiocatoriPage({ onBack, onNavigate }) {
 
       <main className="page-content">
         <div className="stats-cards">
-          <div className="stat-card"><span className="stat-number">{giocatori.length}</span><span className="stat-label">Totali</span></div>
-          <div className="stat-card"><span className="stat-number">{giocatori.filter(g => g.livello_gioco === 'avanzato').length}</span><span className="stat-label">Avanzati</span></div>
-          <div className="stat-card"><span className="stat-number">{giocatori.filter(g => g.livello_gioco === 'intermedio').length}</span><span className="stat-label">Intermedi</span></div>
+          <div className="stat-card">
+            <span className="stat-number">{giocatori.length}</span>
+            <span className="stat-label">Totali</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {giocatori.filter(g => g.livello_iniziale === 'Avanzato').length}
+            </span>
+            <span className="stat-label">Avanzati</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-number">
+              {giocatori.filter(g => g.livello_iniziale === 'Intermedio').length}
+            </span>
+            <span className="stat-label">Intermedi</span>
+          </div>
         </div>
 
         <div className="list-section">
           <h2 className="section-title">Tutti i giocatori</h2>
           <div className="items-list">
-            {giocatori.map(giocatore => (
-              <div key={giocatore.id} className="list-item" onClick={() => onNavigate('dettaglio-giocatore', giocatore.id)}>
-                <div className="item-avatar" style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}>
-                  {giocatore.nome_completo.charAt(0)}
-                </div>
-                <div className="item-content">
-                  <h3 className="item-title">{giocatore.nome_completo}</h3>
-                  <p className="item-subtitle">
-                    {giocatore.email} 
-                    {giocatore.comune && ` • ${giocatore.comune} (${giocatore.provincia})`}
-                  </p>
-                </div>
-                <div className="item-badge">{giocatore.livello_gioco}</div>
+            {giocatori.length === 0 ? (
+              <div className="empty-state">
+                <p>Nessun giocatore trovato</p>
+                <button 
+                  onClick={fetchGiocatori} 
+                  className="btn-retry"
+                >
+                  🔄 Ricarica
+                </button>
               </div>
-            ))}
+            ) : (
+              giocatori.map(giocatore => (
+                <div 
+                  key={giocatore.id} 
+                  className="list-item" 
+                  onClick={() => onNavigate('dettaglio-giocatore', giocatore.id)}
+                >
+                  <div 
+                    className="item-avatar" 
+                    style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}
+                  >
+                    {giocatore.nome_completo.charAt(0)}
+                  </div>
+                  <div className="item-content">
+                    <h3 className="item-title">{giocatore.nome_completo}</h3>
+                    <p className="item-subtitle">
+                      {giocatore.email} 
+                      {giocatore.provincia && ` • ${giocatore.provincia}`}
+                    </p>
+                  </div>
+                  <div className="item-badge">
+                    {giocatore.livello_iniziale || 'Non specificato'}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
