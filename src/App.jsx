@@ -114,9 +114,12 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Dettaglio Giocatore
+// Componente Dettaglio Giocatore con Geolocalizzazione
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
+  const [modificaCitta, setModificaCitta] = useState(false);
+  const [nuovaCitta, setNuovaCitta] = useState('');
+  const [caricamentoGeo, setCaricamentoGeo] = useState(false);
 
   useEffect(() => {
     fetchGiocatore();
@@ -129,7 +132,98 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
       .eq('id', giocatoreId)
       .single();
     
-    if (data) setGiocatore(data);
+    if (data) {
+      setGiocatore(data);
+      setNuovaCitta(data.citta || '');
+    }
+  };
+
+  const geolocalizzaAutomatica = async () => {
+    // 1. Controlla se il browser supporta la geolocalizzazione
+    if (!navigator.geolocation) {
+      alert('Il tuo browser non supporta la geolocalizzazione. Inserisci manualmente la città.');
+      setModificaCitta(true);
+      return;
+    }
+
+    // 2. Controlla HTTPS (obbligatorio in produzione)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      alert('La geolocalizzazione richiede HTTPS in produzione. Inserisci manualmente la città.');
+      setModificaCitta(true);
+      return;
+    }
+
+    setCaricamentoGeo(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Reverse geocoding per ottenere la città
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=it`
+          );
+          
+          if (!response.ok) throw new Error('API non disponibile');
+          
+          const data = await response.json();
+          const cittaTrovata = data.city || data.locality || data.principalSubdivision || 'Posizione sconosciuta';
+          
+          // Aggiorna immediatamente nel database
+          await supabase
+            .from('profili_utenti')
+            .update({ citta: cittaTrovata })
+            .eq('id', giocatoreId);
+          
+          setNuovaCitta(cittaTrovata);
+          fetchGiocatore();
+          
+        } catch (error) {
+          console.error('Errore geolocalizzazione:', error);
+          alert('Posizione trovata ma impossibile determinare la città. Inseriscila manualmente.');
+          setModificaCitta(true);
+        } finally {
+          setCaricamentoGeo(false);
+        }
+      },
+      (error) => {
+        setCaricamentoGeo(false);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            alert('Permesso di geolocalizzazione negato. Inserisci manualmente la città.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('Posizione non disponibile (GPS spento?). Inserisci manualmente la città.');
+            break;
+          case error.TIMEOUT:
+            alert('Timeout nella geolocalizzazione. Inserisci manualmente la città.');
+            break;
+          default:
+            alert('Errore nella geolocalizzazione. Inserisci manualmente la città.');
+        }
+        setModificaCitta(true);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  const salvaCitta = async () => {
+    if (nuovaCitta.trim()) {
+      await supabase
+        .from('profili_utenti')
+        .update({ citta: nuovaCitta.trim() })
+        .eq('id', giocatoreId);
+      
+      setModificaCitta(false);
+      fetchGiocatore();
+    } else {
+      alert('Inserisci una città valida');
+    }
   };
 
   if (!giocatore) return (
@@ -181,6 +275,73 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
               {giocatore.attaccante && <span className="ruolo">Attaccante</span>}
             </div>
           </div>
+          
+          {/* NUOVO CAMPO CITTA' CON GEOLOCALIZZAZIONE */}
+          <div className="info-card">
+            <div className="citta-header">
+              <h3>🏠 Città</h3>
+              <div className="citta-actions">
+                {!modificaCitta ? (
+                  <>
+                    <button 
+                      className={`btn-geolocalizza-small ${caricamentoGeo ? 'loading' : ''}`}
+                      onClick={geolocalizzaAutomatica}
+                      disabled={caricamentoGeo}
+                      title="Usa la mia posizione attuale"
+                    >
+                      {caricamentoGeo ? '⏳' : '📍'}
+                    </button>
+                    <button 
+                      className="btn-modifica"
+                      onClick={() => setModificaCitta(true)}
+                    >
+                      ✏️
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button 
+                      className="btn-salva"
+                      onClick={salvaCitta}
+                      disabled={!nuovaCitta.trim()}
+                    >
+                      ✅
+                    </button>
+                    <button 
+                      className="btn-annulla"
+                      onClick={() => {
+                        setModificaCitta(false);
+                        setNuovaCitta(giocatore.citta);
+                      }}
+                    >
+                      ❌
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {modificaCitta ? (
+              <div className="input-citta-container">
+                <input
+                  type="text"
+                  value={nuovaCitta}
+                  onChange={(e) => setNuovaCitta(e.target.value)}
+                  placeholder="Inserisci la tua città..."
+                  className="input-citta"
+                  autoFocus
+                />
+                <p className="input-helper">
+                  Premi Invio per salvare o usa i pulsanti
+                </p>
+              </div>
+            ) : (
+              <p className={!giocatore.citta || giocatore.citta === 'Non specificata' ? 'citta-non-specificata' : ''}>
+                {giocatore.citta || 'Città non specificata'}
+              </p>
+            )}
+          </div>
+
           <div className="info-card">
             <h3>📅 Data Iscrizione</h3>
             <p>{giocatore.data_iscrizione ? new Date(giocatore.data_iscrizione).toLocaleDateString('it-IT') : 'Non specificata'}</p>
@@ -256,7 +417,10 @@ function GiocatoriPage({ onBack, onNavigate }) {
                 </div>
                 <div className="item-content">
                   <h3 className="item-title">{giocatore.nome_completo}</h3>
-                  <p className="item-subtitle">{giocatore.email}</p>
+                  <p className="item-subtitle">
+                    {giocatore.email} 
+                    {giocatore.citta && giocatore.citta !== 'Non specificata' && ` • ${giocatore.citta}`}
+                  </p>
                 </div>
                 <div className="item-badge">
                   {giocatore.livello_gioco}
