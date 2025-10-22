@@ -9,56 +9,41 @@ function getColorFromName(name) {
   return colors[index];
 }
 
+// Dataset Province del Veneto
+const provinceVeneto = [
+  { sigla: "VR", nome: "Verona", regione: "Veneto" },
+  { sigla: "VI", nome: "Vicenza", regione: "Veneto" },
+  { sigla: "PD", nome: "Padova", regione: "Veneto" },
+  { sigla: "VE", nome: "Venezia", regione: "Veneto" },
+  { sigla: "TV", nome: "Treviso", regione: "Veneto" },
+  { sigla: "BL", nome: "Belluno", regione: "Veneto" },
+  { sigla: "RO", nome: "Rovigo", regione: "Veneto" }
+];
+
+// Dataset Comuni del Veneto
+const comuniVeneto = {
+  "VR": ["Verona", "Villafranca di Verona", "Legnago", "San Giovanni Lupatoto", "San Bonifacio", "Bussolengo", "Sona", "Pescantina", "Sommacampagna", "Valeggio sul Mincio", "Castelnuovo del Garda", "Zevio", "Caldiero", "Isola della Scala", "Nogarole Rocca", "Buttapietra", "Grezzana", "Roverè Veronese", "Bosco Chiesanuova", "Malcesine"],
+  "VI": ["Vicenza", "Bassano del Grappa", "Schio", "Valdagno", "Arzignano", "Thiene", "Montecchio Maggiore", "Lonigo", "Camisano Vicentino", "Castelfranco Veneto", "Dueville", "Monticello Conte Otto", "Creazzo", "Gambellara", "Nove", "Marostica", "Rossano Veneto", "Cassola", "Breganze", "Asiago"],
+  "PD": ["Padova", "Selvazzano Dentro", "Vigonza", "Cittadella", "Albignasego", "Abano Terme", "Piove di Sacco", "Monselice", "Este", "Cadoneghe", "Rubano", "Campodarsego", "Trebaseleghe", "Saonara", "Vigonovo", "Casalserugo", "Brugine", "Cartura", "Ponte San Nicolò", "Montegrotto Terme"],
+  "VE": ["Venezia", "Chioggia", "San Donà di Piave", "Mirano", "Portogruaro", "Spinea", "Jesolo", "Martellago", "Scorzè", "Noale", "Cavarzere", "Dolo", "Marcon", "Meolo", "Fossò", "Camponogara", "Campagna Lupia", "Pianiga", "Stra", "Eraclea"],
+  "TV": ["Treviso", "Conegliano", "Castelfranco Veneto", "Montebelluna", "Vittorio Veneto", "Mogliano Veneto", "Oderzo", "Paese", "Roncade", "Preganziol", "Vedelago", "Casale sul Sile", "Ponzano Veneto", "Susegana", "Mareno di Piave", "Volpago del Montello", "Gaiarine", "San Biagio di Callalta", "Motta di Livenza", "Cessalto"],
+  "BL": ["Belluno", "Feltre", "Sedico", "Santa Giustina", "Ponte nelle Alpi", "Longarone", "Cortina d'Ampezzo", "Auronzo di Cadore", "Cesiomaggiore", "Lentiai", "Trichiana", "San Gregorio nelle Alpi", "Sospirolo", "Pedavena", "La Valle Agordina", "Fonzaso", "Canale d'Agordo", "Falcade", "Alleghe", "Rocca Pietore"],
+  "RO": ["Rovigo", "Adria", "Porto Viro", "Lendinara", "Occhiobello", "Badia Polesine", "Polesella", "Castelmassa", "Ceregnano", "Villadose", "Costa di Rovigo", "Fratta Polesine", "San Martino di Venezze", "Villanova del Ghebbo", "Salara", "Gaiba", "Fiesso Umbertiano", "Canaro", "Bergantino", "Melara"]
+};
+
 // Componente Homepage - Stile Appito
 function HomePage({ onNavigate }) {
   const menuItems = [
-    { 
-      id: 'eventi', 
-      icon: '📅', 
-      title: 'Eventi', 
-      subtitle: 'Crea e gestisci eventi',
-      color: '#2563eb'
-    },
-    { 
-      id: 'giocatori', 
-      icon: '👥', 
-      title: 'Giocatori', 
-      subtitle: 'Gestisci la squadra',
-      color: '#dc2626'
-    },
-    { 
-      id: 'classifica', 
-      icon: '🏆', 
-      title: 'Classifica', 
-      subtitle: 'Statistiche e ranking',
-      color: '#ea580c'
-    },
-    { 
-      id: 'feed', 
-      icon: '💬', 
-      title: 'Feed', 
-      subtitle: 'News e aggiornamenti',
-      color: '#16a34a'
-    },
-    { 
-      id: 'statistiche', 
-      icon: '📊', 
-      title: 'Statistiche', 
-      subtitle: 'Analisi performance',
-      color: '#7c3aed'
-    },
-    { 
-      id: 'impostazioni', 
-      icon: '⚙️', 
-      title: 'Impostazioni', 
-      subtitle: 'Preferenze sistema',
-      color: '#475569'
-    }
+    { id: 'eventi', icon: '📅', title: 'Eventi', subtitle: 'Crea e gestisci eventi', color: '#2563eb' },
+    { id: 'giocatori', icon: '👥', title: 'Giocatori', subtitle: 'Gestisci la squadra', color: '#dc2626' },
+    { id: 'classifica', icon: '🏆', title: 'Classifica', subtitle: 'Statistiche e ranking', color: '#ea580c' },
+    { id: 'feed', icon: '💬', title: 'Feed', subtitle: 'News e aggiornamenti', color: '#16a34a' },
+    { id: 'statistiche', icon: '📊', title: 'Statistiche', subtitle: 'Analisi performance', color: '#7c3aed' },
+    { id: 'impostazioni', icon: '⚙️', title: 'Impostazioni', subtitle: 'Preferenze sistema', color: '#475569' }
   ];
 
   return (
     <div className="appito-home">
-      {/* HEADER MINIMAL */}
       <header className="appito-header">
         <div className="header-content">
           <h1 className="app-name">Scarpari</h1>
@@ -66,21 +51,11 @@ function HomePage({ onNavigate }) {
         </div>
       </header>
 
-      {/* GRIGLIA PULITA */}
       <main className="appito-main">
         <div className="grid-menu">
           {menuItems.map((item) => (
-            <div
-              key={item.id}
-              className="menu-card"
-              onClick={() => onNavigate(item.id)}
-            >
-              <div 
-                className="card-icon"
-                style={{ backgroundColor: item.color }}
-              >
-                {item.icon}
-              </div>
+            <div key={item.id} className="menu-card" onClick={() => onNavigate(item.id)}>
+              <div className="card-icon" style={{ backgroundColor: item.color }}>{item.icon}</div>
               <div className="card-content">
                 <h3 className="card-title">{item.title}</h3>
                 <p className="card-subtitle">{item.subtitle}</p>
@@ -91,35 +66,23 @@ function HomePage({ onNavigate }) {
         </div>
       </main>
 
-      {/* NAVIGAZIONE INFERIORE */}
       <nav className="bottom-nav">
-        <button className="nav-item active">
-          <span>🏠</span>
-          <span>Home</span>
-        </button>
-        <button className="nav-item">
-          <span>📅</span>
-          <span>Eventi</span>
-        </button>
-        <button className="nav-item">
-          <span>👥</span>
-          <span>Giocatori</span>
-        </button>
-        <button className="nav-item">
-          <span>👤</span>
-          <span>Profilo</span>
-        </button>
+        <button className="nav-item active"><span>🏠</span><span>Home</span></button>
+        <button className="nav-item"><span>📅</span><span>Eventi</span></button>
+        <button className="nav-item"><span>👥</span><span>Giocatori</span></button>
+        <button className="nav-item"><span>👤</span><span>Profilo</span></button>
       </nav>
     </div>
   );
 }
 
-// Componente Dettaglio Giocatore con Geolocalizzazione
+// Componente Dettaglio Giocatore con Selezione Posizione
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
-  const [modificaCitta, setModificaCitta] = useState(false);
-  const [nuovaCitta, setNuovaCitta] = useState('');
-  const [caricamentoGeo, setCaricamentoGeo] = useState(false);
+  const [modificaPosizione, setModificaPosizione] = useState(false);
+  const [provinciaSelezionata, setProvinciaSelezionata] = useState('');
+  const [comuneSelezionato, setComuneSelezionato] = useState('');
+  const [ricercaComune, setRicercaComune] = useState('');
 
   useEffect(() => {
     fetchGiocatore();
@@ -134,95 +97,30 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     
     if (data) {
       setGiocatore(data);
-      setNuovaCitta(data.citta || '');
+      setProvinciaSelezionata(data.provincia || '');
+      setComuneSelezionato(data.comune || '');
     }
   };
 
-  const geolocalizzaAutomatica = async () => {
-    // 1. Controlla se il browser supporta la geolocalizzazione
-    if (!navigator.geolocation) {
-      alert('Il tuo browser non supporta la geolocalizzazione. Inserisci manualmente la città.');
-      setModificaCitta(true);
-      return;
-    }
+  // Filtra comuni in base alla provincia e ricerca
+  const comuniFiltrati = provinciaSelezionata 
+    ? comuniVeneto[provinciaSelezionata].filter(comune =>
+        comune.toLowerCase().includes(ricercaComune.toLowerCase())
+      ).slice(0, 10)
+    : [];
 
-    // 2. Controlla HTTPS (obbligatorio in produzione)
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      alert('La geolocalizzazione richiede HTTPS in produzione. Inserisci manualmente la città.');
-      setModificaCitta(true);
-      return;
-    }
-
-    setCaricamentoGeo(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          // Reverse geocoding per ottenere la città
-          const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=it`
-          );
-          
-          if (!response.ok) throw new Error('API non disponibile');
-          
-          const data = await response.json();
-          const cittaTrovata = data.city || data.locality || data.principalSubdivision || 'Posizione sconosciuta';
-          
-          // Aggiorna immediatamente nel database
-          await supabase
-            .from('profili_utenti')
-            .update({ citta: cittaTrovata })
-            .eq('id', giocatoreId);
-          
-          setNuovaCitta(cittaTrovata);
-          fetchGiocatore();
-          
-        } catch (error) {
-          console.error('Errore geolocalizzazione:', error);
-          alert('Posizione trovata ma impossibile determinare la città. Inseriscila manualmente.');
-          setModificaCitta(true);
-        } finally {
-          setCaricamentoGeo(false);
-        }
-      },
-      (error) => {
-        setCaricamentoGeo(false);
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            alert('Permesso di geolocalizzazione negato. Inserisci manualmente la città.');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            alert('Posizione non disponibile (GPS spento?). Inserisci manualmente la città.');
-            break;
-          case error.TIMEOUT:
-            alert('Timeout nella geolocalizzazione. Inserisci manualmente la città.');
-            break;
-          default:
-            alert('Errore nella geolocalizzazione. Inserisci manualmente la città.');
-        }
-        setModificaCitta(true);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000
-      }
-    );
-  };
-
-  const salvaCitta = async () => {
-    if (nuovaCitta.trim()) {
+  const salvaPosizione = async () => {
+    if (provinciaSelezionata && comuneSelezionato) {
       await supabase
         .from('profili_utenti')
-        .update({ citta: nuovaCitta.trim() })
+        .update({ 
+          provincia: provinciaSelezionata,
+          comune: comuneSelezionato 
+        })
         .eq('id', giocatoreId);
       
-      setModificaCitta(false);
+      setModificaPosizione(false);
       fetchGiocatore();
-    } else {
-      alert('Inserisci una città valida');
     }
   };
 
@@ -247,10 +145,7 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
 
       <main className="page-content">
         <div className="profile-header">
-          <div 
-            className="profile-avatar"
-            style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}
-          >
+          <div className="profile-avatar" style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}>
             {giocatore.nome_completo.charAt(0)}
           </div>
           <h2 className="profile-name">{giocatore.nome_completo}</h2>
@@ -276,68 +171,51 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
             </div>
           </div>
           
-          {/* NUOVO CAMPO CITTA' CON GEOLOCALIZZAZIONE */}
+          {/* NUOVO CAMPO POSIZIONE CON PROVINCIA/COMUNE */}
           <div className="info-card">
-            <div className="citta-header">
-              <h3>🏠 Città</h3>
-              <div className="citta-actions">
-                {!modificaCitta ? (
-                  <>
-                    <button 
-                      className={`btn-geolocalizza-small ${caricamentoGeo ? 'loading' : ''}`}
-                      onClick={geolocalizzaAutomatica}
-                      disabled={caricamentoGeo}
-                      title="Usa la mia posizione attuale"
-                    >
-                      {caricamentoGeo ? '⏳' : '📍'}
-                    </button>
-                    <button 
-                      className="btn-modifica"
-                      onClick={() => setModificaCitta(true)}
-                    >
-                      ✏️
-                    </button>
-                  </>
+            <div className="posizione-header">
+              <h3>🏠 Posizione</h3>
+              <div className="posizione-actions">
+                {!modificaPosizione ? (
+                  <button className="btn-modifica" onClick={() => setModificaPosizione(true)}>✏️</button>
                 ) : (
                   <>
-                    <button 
-                      className="btn-salva"
-                      onClick={salvaCitta}
-                      disabled={!nuovaCitta.trim()}
-                    >
-                      ✅
-                    </button>
-                    <button 
-                      className="btn-annulla"
-                      onClick={() => {
-                        setModificaCitta(false);
-                        setNuovaCitta(giocatore.citta);
-                      }}
-                    >
-                      ❌
-                    </button>
+                    <button className="btn-salva" onClick={salvaPosizione} disabled={!provinciaSelezionata || !comuneSelezionato}>✅</button>
+                    <button className="btn-annulla" onClick={() => setModificaPosizione(false)}>❌</button>
                   </>
                 )}
               </div>
             </div>
             
-            {modificaCitta ? (
-              <div className="input-citta-container">
-                <input
-                  type="text"
-                  value={nuovaCitta}
-                  onChange={(e) => setNuovaCitta(e.target.value)}
-                  placeholder="Inserisci la tua città..."
-                  className="input-citta"
-                  autoFocus
-                />
-                <p className="input-helper">
-                  Premi Invio per salvare o usa i pulsanti
-                </p>
+            {modificaPosizione ? (
+              <div className="posizione-inputs">
+                <div className="input-group">
+                  <label>Provincia</label>
+                  <select value={provinciaSelezionata} onChange={(e) => { setProvinciaSelezionata(e.target.value); setComuneSelezionato(''); setRicercaComune(''); }} className="select-provincia">
+                    <option value="">Seleziona provincia</option>
+                    {provinceVeneto.map(prov => <option key={prov.sigla} value={prov.sigla}>{prov.nome} ({prov.sigla})</option>)}
+                  </select>
+                </div>
+
+                {provinciaSelezionata && (
+                  <div className="input-group">
+                    <label>Comune</label>
+                    <input type="text" value={ricercaComune} onChange={(e) => setRicercaComune(e.target.value)} placeholder="Cerca comune..." className="input-ricerca-comune" />
+                    <div className="dropdown-comuni">
+                      {comuniFiltrati.map(comune => (
+                        <div key={comune} className={`dropdown-item ${comune === comuneSelezionato ? 'selected' : ''}`} onClick={() => setComuneSelezionato(comune)}>
+                          {comune}
+                        </div>
+                      ))}
+                      {comuniFiltrati.length === 0 && ricercaComune && <div className="dropdown-item empty">Nessun comune trovato</div>}
+                    </div>
+                    {comuneSelezionato && <div className="comune-selezionato">Selezionato: <strong>{comuneSelezionato}</strong></div>}
+                  </div>
+                )}
               </div>
             ) : (
-              <p className={!giocatore.citta || giocatore.citta === 'Non specificata' ? 'citta-non-specificata' : ''}>
-                {giocatore.citta || 'Città non specificata'}
+              <p className={!giocatore.comune ? 'posizione-non-specificata' : ''}>
+                {giocatore.comune && giocatore.provincia ? `${giocatore.comune} (${giocatore.provincia})` : 'Posizione non specificata'}
               </p>
             )}
           </div>
@@ -382,49 +260,27 @@ function GiocatoriPage({ onBack, onNavigate }) {
 
       <main className="page-content">
         <div className="stats-cards">
-          <div className="stat-card">
-            <span className="stat-number">{giocatori.length}</span>
-            <span className="stat-label">Totali</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-number">
-              {giocatori.filter(g => g.livello_gioco === 'avanzato').length}
-            </span>
-            <span className="stat-label">Avanzati</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-number">
-              {giocatori.filter(g => g.livello_gioco === 'intermedio').length}
-            </span>
-            <span className="stat-label">Intermedi</span>
-          </div>
+          <div className="stat-card"><span className="stat-number">{giocatori.length}</span><span className="stat-label">Totali</span></div>
+          <div className="stat-card"><span className="stat-number">{giocatori.filter(g => g.livello_gioco === 'avanzato').length}</span><span className="stat-label">Avanzati</span></div>
+          <div className="stat-card"><span className="stat-number">{giocatori.filter(g => g.livello_gioco === 'intermedio').length}</span><span className="stat-label">Intermedi</span></div>
         </div>
 
         <div className="list-section">
           <h2 className="section-title">Tutti i giocatori</h2>
           <div className="items-list">
             {giocatori.map(giocatore => (
-              <div 
-                key={giocatore.id} 
-                className="list-item"
-                onClick={() => onNavigate('dettaglio-giocatore', giocatore.id)}
-              >
-                <div 
-                  className="item-avatar"
-                  style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}
-                >
+              <div key={giocatore.id} className="list-item" onClick={() => onNavigate('dettaglio-giocatore', giocatore.id)}>
+                <div className="item-avatar" style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}>
                   {giocatore.nome_completo.charAt(0)}
                 </div>
                 <div className="item-content">
                   <h3 className="item-title">{giocatore.nome_completo}</h3>
                   <p className="item-subtitle">
                     {giocatore.email} 
-                    {giocatore.citta && giocatore.citta !== 'Non specificata' && ` • ${giocatore.citta}`}
+                    {giocatore.comune && ` • ${giocatore.comune} (${giocatore.provincia})`}
                   </p>
                 </div>
-                <div className="item-badge">
-                  {giocatore.livello_gioco}
-                </div>
+                <div className="item-badge">{giocatore.livello_gioco}</div>
               </div>
             ))}
           </div>
@@ -464,22 +320,9 @@ function EventiPage({ onBack }) {
 
       <main className="page-content">
         <div className="stats-cards">
-          <div className="stat-card">
-            <span className="stat-number">{eventi.length}</span>
-            <span className="stat-label">Totali</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-number">
-              {eventi.filter(e => new Date(e.data_ora) > new Date()).length}
-            </span>
-            <span className="stat-label">Futuri</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-number">
-              {eventi.filter(e => new Date(e.data_ora) < new Date()).length}
-            </span>
-            <span className="stat-label">Passati</span>
-          </div>
+          <div className="stat-card"><span className="stat-number">{eventi.length}</span><span className="stat-label">Totali</span></div>
+          <div className="stat-card"><span className="stat-number">{eventi.filter(e => new Date(e.data_ora) > new Date()).length}</span><span className="stat-label">Futuri</span></div>
+          <div className="stat-card"><span className="stat-number">{eventi.filter(e => new Date(e.data_ora) < new Date()).length}</span><span className="stat-label">Passati</span></div>
         </div>
 
         <div className="list-section">
@@ -490,13 +333,9 @@ function EventiPage({ onBack }) {
                 <div className="evento-icon">📅</div>
                 <div className="item-content">
                   <h3 className="item-title">{evento.nome_evento}</h3>
-                  <p className="item-subtitle">
-                    {new Date(evento.data_ora).toLocaleDateString('it-IT')} - {evento.luogo}
-                  </p>
+                  <p className="item-subtitle">{new Date(evento.data_ora).toLocaleDateString('it-IT')} - {evento.luogo}</p>
                 </div>
-                <div className="item-badge evento">
-                  {new Date(evento.data_ora) > new Date() ? 'Prossimo' : 'Passato'}
-                </div>
+                <div className="item-badge evento">{new Date(evento.data_ora) > new Date() ? 'Prossimo' : 'Passato'}</div>
               </div>
             ))}
           </div>
@@ -525,23 +364,14 @@ function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'giocatori':
-        return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
-      case 'dettaglio-giocatore':
-        return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
-      case 'eventi':
-        return <EventiPage onBack={handleBack} />;
-      case 'home':
-      default:
-        return <HomePage onNavigate={setCurrentPage} />;
+      case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
+      case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
+      case 'eventi': return <EventiPage onBack={handleBack} />;
+      case 'home': default: return <HomePage onNavigate={setCurrentPage} />;
     }
   };
 
-  return (
-    <div className="appito-app">
-      {renderPage()}
-    </div>
-  );
+  return <div className="appito-app">{renderPage()}</div>;
 }
 
 export default App;
