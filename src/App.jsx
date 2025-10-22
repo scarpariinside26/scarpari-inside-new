@@ -326,19 +326,44 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Dettaglio Giocatore con Selezione Posizione
+// Componente Dettaglio Giocatore - CORREGGI LA QUERY
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
-  const [modificaPosizione, setModificaPosizione] = useState(false);
-  const [provinciaSelezionata, setProvinciaSelezionata] = useState('');
-  const [comuneSelezionato, setComuneSelezionato] = useState('');
-  const [ricercaComune, setRicercaComune] = useState('');
-  const [dropdownAperto, setDropdownAperto] = useState(false);
-  const dropdownRef = useRef(null);
+  const [ruoliGiocatore, setRuoliGiocatore] = useState(null);
+  // ... resto dello stato
 
   useEffect(() => {
     fetchGiocatore();
   }, [giocatoreId]);
+
+  const fetchGiocatore = async () => {
+    try {
+      // 🔥 PRIMA: carica i dati del giocatore
+      const { data: giocatoreData, error: giocatoreError } = await supabase
+        .from('giocatori')
+        .select('*')
+        .eq('id', giocatoreId)
+        .single();
+      
+      if (giocatoreError) throw giocatoreError;
+
+      // 🔥 SECONDO: carica i ruoli del giocatore
+      const { data: ruoliData, error: ruoliError } = await supabase
+        .from('ruoli_giocatore')
+        .select('*')
+        .eq('giocatore_id', giocatoreId)
+        .single();
+
+      if (giocatoreData) {
+        setGiocatore(giocatoreData);
+        setRuoliGiocatore(ruoliData);
+        setProvinciaSelezionata(giocatoreData.provincia || '');
+        setComuneSelezionato(giocatoreData.comune || '');
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento giocatore:', error);
+    }
+  };
 
   // Click outside per chiudere il dropdown
   useEffect(() => {
