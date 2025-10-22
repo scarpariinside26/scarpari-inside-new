@@ -93,31 +93,26 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Dettaglio Giocatore con Selezione Posizione
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
   const [modificaPosizione, setModificaPosizione] = useState(false);
   const [provinciaSelezionata, setProvinciaSelezionata] = useState('');
   const [comuneSelezionato, setComuneSelezionato] = useState('');
   const [ricercaComune, setRicercaComune] = useState('');
+  const [dropdownAperto, setDropdownAperto] = useState(false);
+  const dropdownRef = useRef(null);
 
+  // Click outside per chiudere il dropdown
   useEffect(() => {
-    fetchGiocatore();
-  }, [giocatoreId]);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownAperto(false);
+      }
+    };
 
-  const fetchGiocatore = async () => {
-    const { data } = await supabase
-      .from('profili_utenti')
-      .select('*')
-      .eq('id', giocatoreId)
-      .single();
-    
-    if (data) {
-      setGiocatore(data);
-      setProvinciaSelezionata(data.provincia || '');
-      setComuneSelezionato(data.comune || '');
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Filtra comuni in base alla provincia e ricerca
   const comuniFiltrati = provinciaSelezionata 
@@ -126,127 +121,49 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
       ).slice(0, 10)
     : [];
 
-  const salvaPosizione = async () => {
-    if (provinciaSelezionata && comuneSelezionato) {
-      await supabase
-        .from('profili_utenti')
-        .update({ 
-          provincia: provinciaSelezionata,
-          comune: comuneSelezionato 
-        })
-        .eq('id', giocatoreId);
-      
-      setModificaPosizione(false);
-      fetchGiocatore();
-    }
+  const selezionaComune = (comune) => {
+    setComuneSelezionato(comune);
+    setDropdownAperto(false);
+    setRicercaComune('');
   };
 
-  if (!giocatore) return (
-    <div className="appito-page">
-      <header className="page-header">
-        <button onClick={onBack} className="back-button">←</button>
-        <h1>Caricamento...</h1>
-      </header>
-    </div>
-  );
-
-  return (
-    <div className="appito-page">
-      <header className="page-header">
-        <button onClick={onBack} className="back-button">←</button>
-        <h1>Profilo Giocatore</h1>
-        <div className="header-actions">
-          <button className="icon-button">✏️</button>
-        </div>
-      </header>
-
-      <main className="page-content">
-        <div className="profile-header">
-          <div className="profile-avatar" style={{ backgroundColor: getColorFromName(giocatore.nome_completo) }}>
-            {giocatore.nome_completo.charAt(0)}
-          </div>
-          <h2 className="profile-name">{giocatore.nome_completo}</h2>
-          <div className="profile-badge">{giocatore.livello_gioco}</div>
-        </div>
-
-        <div className="info-grid">
-          <div className="info-card">
-            <h3>📧 Email</h3>
-            <p>{giocatore.email || 'Non specificata'}</p>
-          </div>
-          <div className="info-card">
-            <h3>📞 Telefono</h3>
-            <p>{giocatore.telefono || 'Non specificato'}</p>
-          </div>
-          <div className="info-card">
-            <h3>🎯 Ruoli</h3>
-            <div className="ruoli-list">
-              {giocatore.portiere && <span className="ruolo">Portiere</span>}
-              {giocatore.difensore && <span className="ruolo">Difensore</span>}
-              {giocatore.centrocampista && <span className="ruolo">Centrocampista</span>}
-              {giocatore.attaccante && <span className="ruolo">Attaccante</span>}
+  // Nel JSX - modifica la parte del dropdown comuni:
+  {provinciaSelezionata && (
+    <div className="input-group">
+      <label>Comune</label>
+      <input
+        type="text"
+        value={ricercaComune}
+        onChange={(e) => {
+          setRicercaComune(e.target.value);
+          setDropdownAperto(true);
+        }}
+        onFocus={() => setDropdownAperto(true)}
+        placeholder="Cerca comune..."
+        className="input-ricerca-comune"
+      />
+      
+      {dropdownAperto && comuniFiltrati.length > 0 && (
+        <div className="dropdown-comuni" ref={dropdownRef}>
+          {comuniFiltrati.map(comune => (
+            <div
+              key={comune}
+              className={`dropdown-item ${comune === comuneSelezionato ? 'selected' : ''}`}
+              onClick={() => selezionaComune(comune)}
+            >
+              {comune}
             </div>
-          </div>
-          
-          {/* NUOVO CAMPO POSIZIONE CON PROVINCIA/COMUNE */}
-          <div className="info-card">
-            <div className="posizione-header">
-              <h3>🏠 Posizione</h3>
-              <div className="posizione-actions">
-                {!modificaPosizione ? (
-                  <button className="btn-modifica" onClick={() => setModificaPosizione(true)}>✏️</button>
-                ) : (
-                  <>
-                    <button className="btn-salva" onClick={salvaPosizione} disabled={!provinciaSelezionata || !comuneSelezionato}>✅</button>
-                    <button className="btn-annulla" onClick={() => setModificaPosizione(false)}>❌</button>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            {modificaPosizione ? (
-              <div className="posizione-inputs">
-                <div className="input-group">
-                  <label>Provincia</label>
-                  <select value={provinciaSelezionata} onChange={(e) => { setProvinciaSelezionata(e.target.value); setComuneSelezionato(''); setRicercaComune(''); }} className="select-provincia">
-                    <option value="">Seleziona provincia</option>
-                    {provinceVeneto.map(prov => <option key={prov.sigla} value={prov.sigla}>{prov.nome} ({prov.sigla})</option>)}
-                  </select>
-                </div>
-
-                {provinciaSelezionata && (
-                  <div className="input-group">
-                    <label>Comune</label>
-                    <input type="text" value={ricercaComune} onChange={(e) => setRicercaComune(e.target.value)} placeholder="Cerca comune..." className="input-ricerca-comune" />
-                    <div className="dropdown-comuni">
-                      {comuniFiltrati.map(comune => (
-                        <div key={comune} className={`dropdown-item ${comune === comuneSelezionato ? 'selected' : ''}`} onClick={() => setComuneSelezionato(comune)}>
-                          {comune}
-                        </div>
-                      ))}
-                      {comuniFiltrati.length === 0 && ricercaComune && <div className="dropdown-item empty">Nessun comune trovato</div>}
-                    </div>
-                    {comuneSelezionato && <div className="comune-selezionato">Selezionato: <strong>{comuneSelezionato}</strong></div>}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className={!giocatore.comune ? 'posizione-non-specificata' : ''}>
-                {giocatore.comune && giocatore.provincia ? `${giocatore.comune} (${giocatore.provincia})` : 'Posizione non specificata'}
-              </p>
-            )}
-          </div>
-
-          <div className="info-card">
-            <h3>📅 Data Iscrizione</h3>
-            <p>{giocatore.data_iscrizione ? new Date(giocatore.data_iscrizione).toLocaleDateString('it-IT') : 'Non specificata'}</p>
-          </div>
+          ))}
         </div>
-      </main>
+      )}
+      
+      {comuneSelezionato && (
+        <div className="comune-selezionato">
+          Selezionato: <strong>{comuneSelezionato}</strong>
+        </div>
+      )}
     </div>
-  );
-}
-
+  )}
 // Componente Giocatori
 function GiocatoriPage({ onBack, onNavigate }) {
   const [giocatori, setGiocatori] = useState([]);
