@@ -1,10 +1,10 @@
+// IN CIMA AL FILE, SOSTITUISCI GLI IMPORT CON:
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 import ProfiloUtente from './components/ProfiloUtente';
 import GeneratoreSquadre from './components/GeneratoreSquadre';
 import Classifica from './components/Classifica';
-import GeneratoreSquadre from './components/GeneratoreSquadre';
 
 // Helper function per colori avatar
 function getColorFromName(name) {
@@ -494,10 +494,9 @@ function App() {
       case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi': return <EventiPage onBack={handleBack} />;
       case 'profilo': return <ProfiloUtente onBack={handleBack} />;
+      case 'classifica': return <Classifica onBack={handleBack} />;
       case 'genera-squadre': return <GeneratoreSquadre onBack={handleBack} />;
       case 'home': default: return <HomePage onNavigate={handleNavigate} />;
-        case 'classifica': return <Classifica onBack={handleBack} />;
-case 'genera-squadre': return <GeneratoreSquadre onBack={handleBack} />;
     }
   };
 
