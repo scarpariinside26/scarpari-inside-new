@@ -488,6 +488,8 @@ function App() {
     setSelectedGiocatoreId(null);
   };
 
+   // ... il resto del codice ...
+
   const renderPage = () => {
     switch (currentPage) {
       case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
