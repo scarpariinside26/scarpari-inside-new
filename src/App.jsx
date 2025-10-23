@@ -1,4 +1,3 @@
-// IN CIMA AL FILE, SOSTITUISCI GLI IMPORT CON:
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
@@ -168,8 +167,10 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
         })
         .eq('id', giocatoreId);
       
-setModificaPosizione(false);
-caricaDatiGiocatore();
+      setModificaPosizione(false);
+      caricaDatiGiocatore();
+    }
+  };
 
   if (!giocatore) return (
     <div className="appito-page">
@@ -318,11 +319,11 @@ caricaDatiGiocatore();
 function GiocatoriPage({ onBack, onNavigate }) {
   const [giocatori, setGiocatori] = useState([]);
 
-useEffect(() => {
-  caricaDatiGiocatore();
-}, [giocatoreId]);
+  useEffect(() => {
+    fetchGiocatori();
+  }, []);
 
-const caricaDatiGiocatore = async () => {
+  const fetchGiocatori = async () => {
     const { data, error } = await supabase
       .from('profili_utenti')
       .select('*')
@@ -501,6 +502,6 @@ function App() {
   };
 
   return <div className="appito-app">{renderPage()}</div>;
-} // ← PARENTESI DI CHIUSURA DELLA FUNZIONE App
+}
 
 export default App;
