@@ -166,10 +166,8 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
         })
         .eq('id', giocatoreId);
       
-      setModificaPosizione(false);
-      caricaDatiGiocatore();
-    }
-  };
+setModificaPosizione(false);
+caricaDatiGiocatore();
 
   if (!giocatore) return (
     <div className="appito-page">
@@ -318,11 +316,11 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
 function GiocatoriPage({ onBack, onNavigate }) {
   const [giocatori, setGiocatori] = useState([]);
 
-  useEffect(() => {
-    fetchGiocatori();
-  }, []);
+useEffect(() => {
+  caricaDatiGiocatore();
+}, [giocatoreId]);
 
-  const fetchGiocatori = async () => {
+const caricaDatiGiocatore = async () => {
     const { data, error } = await supabase
       .from('profili_utenti')
       .select('*')
