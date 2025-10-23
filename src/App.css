@@ -11,6 +11,7 @@ body {
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 .App {
@@ -18,92 +19,181 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: 
-    radial-gradient(circle at 20% 80%, #ff0000 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, #8B0000 0%, transparent 50%),
-    #000000;
-  background-size: cover;
+  background: #000;
 }
 
-.main-content {
-  text-align: center;
-  padding: 2rem;
-  max-width: 800px;
-}
-
-h1 {
+/* ANIMAZIONE DI APERTURA */
+.animation-phase {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 4.5rem;
-  margin-bottom: 3rem;
+  font-size: 4rem;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 4px;
+  padding: 2rem;
+  animation: textGlow 2s ease-in-out infinite;
+}
+
+@keyframes textGlow {
+  0%, 100% { 
+    text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    transform: scale(1);
+  }
+  50% { 
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    transform: scale(1.05);
+  }
+}
+
+.phase-1 {
+  color: #ff0000;
+  background: 
+    radial-gradient(circle at 20% 80%, #ff0000 0%, transparent 50%),
+    #000;
+}
+
+.phase-2 {
+  color: #ff6b6b;
+  background: 
+    radial-gradient(circle at 80% 20%, #8B0000 0%, transparent 50%),
+    #000;
+}
+
+.phase-3 {
   color: #fff;
-  text-shadow: 2px 2px 0px #ff0000, 4px 4px 0px #000;
-  transform: skew(-5deg);
+  font-size: 3.5rem;
+  background: 
+    radial-gradient(circle at 50% 50%, #333 0%, transparent 70%),
+    #000;
 }
 
-.message {
-  font-size: 1.3rem;
-  line-height: 1.6;
-  margin-bottom: 3rem;
-  font-weight: 600;
+.phase-4 {
+  color: #ffd700;
+  font-size: 5rem;
+  text-shadow: 0 0 30px #ffd700 !important;
 }
 
-.message p {
-  margin-bottom: 1.2rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.8rem 1.5rem;
-  border-radius: 0;
-  border-left: 4px solid #ff0000;
-  backdrop-filter: blur(10px);
-}
-
-.highlight {
-  font-family: 'Bebas Neue', sans-serif;
+.phase-5 {
+  color: #ff0000;
   font-size: 3rem;
+}
+
+.phase-6 {
+  color: #fff;
+  font-size: 4rem;
+  animation: countdownPulse 1s ease-in-out infinite !important;
+}
+
+@keyframes countdownPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+/* DASHBOARD */
+.dashboard {
+  min-height: 100vh;
+  width: 100%;
+  background: 
+    radial-gradient(circle at 10% 20%, #ff0000 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, #8B0000 0%, transparent 40%),
+    #000;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  text-align: center;
+  padding: 2rem;
+  border-bottom: 2px solid #ff0000;
+}
+
+.dashboard-header h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.5rem;
+  letter-spacing: 3px;
   color: #fff;
   text-shadow: 2px 2px 0px #ff0000;
-  margin-top: 2rem;
-  background: linear-gradient(45deg, #ff0000, #ff6b6b);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  padding: 0.5rem 2rem;
+}
+
+.dashboard-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.menu-card {
+  background: rgba(255, 255, 255, 0.1);
   border: 2px solid #ff0000;
-  display: inline-block;
-  transform: skew(-5deg);
+  border-radius: 0;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  transform: skew(-2deg);
 }
 
-.signature {
-  margin-top: 3rem;
-  font-style: italic;
-  color: #888;
-  border-top: 2px solid #333;
-  padding-top: 1.5rem;
-  font-size: 1rem;
+.menu-card:hover {
+  transform: skew(-2deg) scale(1.05);
+  border-color: #ff6b6b;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+}
+
+.menu-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.menu-card h3 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
   letter-spacing: 2px;
-  font-weight: 400;
+  margin-bottom: 1rem;
+  color: #fff;
 }
 
-/* Effetti hover street */
-.message p:hover {
-  transform: translateX(10px);
-  transition: transform 0.3s ease;
-  border-left: 4px solid #ff6b6b;
+.menu-card p {
+  color: #ccc;
+  font-size: 1rem;
 }
 
-/* Responsive */
+.dashboard-footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid #333;
+  color: #888;
+  font-style: italic;
+}
+
+/* RESPONSIVE */
 @media (max-width: 768px) {
-  h1 {
-    font-size: 3rem;
-    letter-spacing: 2px;
+  .animation-phase {
+    font-size: 2.5rem;
   }
   
-  .message {
-    font-size: 1.1rem;
+  .phase-4 {
+    font-size: 3.5rem;
   }
   
-  .highlight {
-    font-size: 2.2rem;
-    padding: 0.5rem 1rem;
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .menu-card {
+    padding: 1.5rem;
   }
 }
