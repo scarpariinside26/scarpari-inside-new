@@ -3,14 +3,6 @@ import { supabase } from './supabaseClient';
 import './App.css';
 import ProfiloUtente from './components/ProfiloUtente';
 
-function App() {
-  return (
-    <div className="App">
-      <ProfiloUtente />
-    </div>
-  );
-}
-
 // Helper function per colori avatar
 function getColorFromName(name) {
   const colors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#475569'];
@@ -57,234 +49,6 @@ const comuniVeneto = {
   ]
 };
 
-// Componente Pagina Profilo
-function ProfiloPage({ onBack }) {
-  const [ruoli, setRuoli] = useState({
-    portiere: false,
-    difensore: false,
-    centrocampista: false,
-    attaccante: false
-  });
-  const [messaggio, setMessaggio] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // ID giocatore - PER ORA HARDCODATO, POI CON AUTH
-  const giocatoreId = 1;
-
-  // Carica i ruoli dal database
-  const caricaRuoli = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('ruoli_giocatore')
-        .select('*')
-        .eq('giocatore_id', giocatoreId)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setRuoli({
-          portiere: data.portiere || false,
-          difensore: data.difensore || false,
-          centrocampista: data.centrocampista || false,
-          attaccante: data.attaccante || false
-        });
-      }
-    } catch (error) {
-      console.error('Errore nel caricamento ruoli:', error);
-      setMessaggio('❌ Errore nel caricamento dei ruoli');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Salva i ruoli nel database
-  const salvaRuoli = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from('ruoli_giocatore')
-        .update({
-          portiere: ruoli.portiere,
-          difensore: ruoli.difensore,
-          centrocampista: ruoli.centrocampista,
-          attaccante: ruoli.attaccante,
-          updated_at: new Date().toISOString()
-        })
-        .eq('giocatore_id', giocatoreId);
-
-      if (error) throw error;
-
-      setMessaggio('✅ Ruoli aggiornati con successo!');
-      setTimeout(() => setMessaggio(''), 3000);
-    } catch (error) {
-      console.error('Errore nel salvataggio:', error);
-      setMessaggio('❌ Errore nel salvataggio dei ruoli');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Gestisce il cambio di stato dei checkbox
-  const handleRuoloChange = (ruolo) => {
-    setRuoli(prev => ({
-      ...prev,
-      [ruolo]: !prev[ruolo]
-    }));
-  };
-
-  // Carica i ruoli all'avvio
-  useEffect(() => {
-    caricaRuoli();
-  }, []);
-
-  return (
-    <div className="appito-page">
-      <header className="page-header">
-        <button onClick={onBack} className="back-button">←</button>
-        <h1>Il Mio Profilo</h1>
-        <div className="header-actions">
-          <button className="icon-button">⚙️</button>
-        </div>
-      </header>
-
-      <main className="page-content">
-        <div className="profile-header">
-          <div className="profile-avatar" style={{ backgroundColor: getColorFromName('Il Mio Profilo') }}>
-            👤
-          </div>
-          <h2 className="profile-name">Il Mio Profilo</h2>
-          <div className="profile-badge">Attivo</div>
-        </div>
-
-        {/* Sezione Ruoli */}
-        <div className="ruoli-container">
-          <div className="ruoli-header">
-            <h3>🔄 I Miei Ruoli Preferiti</h3>
-            <p>Seleziona i ruoli in cui ti senti a tuo agio durante le partite</p>
-          </div>
-
-          {isLoading ? (
-            <div className="loading">Caricamento ruoli...</div>
-          ) : (
-            <>
-              <div className="ruoli-grid">
-                {/* Portiere */}
-                <div className="ruolo-item">
-                  <input 
-                    type="checkbox" 
-                    id="portiere" 
-                    className="ruolo-checkbox"
-                    checked={ruoli.portiere}
-                    onChange={() => handleRuoloChange('portiere')}
-                  />
-                  <label htmlFor="portiere" className="ruolo-label">
-                    <span className="ruolo-emoji">🧤</span>
-                    <span className="ruolo-text">Portiere</span>
-                  </label>
-                </div>
-
-                {/* Difensore */}
-                <div className="ruolo-item">
-                  <input 
-                    type="checkbox" 
-                    id="difensore" 
-                    className="ruolo-checkbox"
-                    checked={ruoli.difensore}
-                    onChange={() => handleRuoloChange('difensore')}
-                  />
-                  <label htmlFor="difensore" className="ruolo-label">
-                    <span className="ruolo-emoji">🛡️</span>
-                    <span className="ruolo-text">Difensore</span>
-                  </label>
-                </div>
-
-                {/* Centrocampista */}
-                <div className="ruolo-item">
-                  <input 
-                    type="checkbox" 
-                    id="centrocampista" 
-                    className="ruolo-checkbox"
-                    checked={ruoli.centrocampista}
-                    onChange={() => handleRuoloChange('centrocampista')}
-                  />
-                  <label htmlFor="centrocampista" className="ruolo-label">
-                    <span className="ruolo-emoji">⚙️</span>
-                    <span className="ruolo-text">Centrocampista</span>
-                  </label>
-                </div>
-
-                {/* Attaccante */}
-                <div className="ruolo-item">
-                  <input 
-                    type="checkbox" 
-                    id="attaccante" 
-                    className="ruolo-checkbox"
-                    checked={ruoli.attaccante}
-                    onChange={() => handleRuoloChange('attaccante')}
-                  />
-                  <label htmlFor="attaccante" className="ruolo-label">
-                    <span className="ruolo-emoji">⚽</span>
-                    <span className="ruolo-text">Attaccante</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="ruoli-info">
-                <p>
-                  <strong>💡 Suggerimento:</strong> Seleziona tutti i ruoli in cui ti senti 
-                  comfortable per facilitare la creazione di squadre bilanciate!
-                </p>
-              </div>
-
-              {/* Pulsante Salva */}
-              <div className="ruoli-actions">
-                <button 
-                  onClick={salvaRuoli}
-                  disabled={isLoading}
-                  className="btn-salva"
-                >
-                  {isLoading ? '⏳ Salvataggio...' : '💾 Salva Modifiche'}
-                </button>
-                
-                {messaggio && (
-                  <div className={`messaggio ${messaggio.includes('✅') ? 'success' : 'error'}`}>
-                    {messaggio}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Sezione Statistiche (Futuro) */}
-        <div className="stats-container">
-          <h3>📊 Le Mie Statistiche</h3>
-          <div className="stats-placeholder">
-            <p>Qui vedrai le tue statistiche di gioco, presenze e valutazioni!</p>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="stat-number">0</span>
-                <span className="stat-label">Partite</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">0</span>
-                <span className="stat-label">Presenze</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-number">-</span>
-                <span className="stat-label">Voto Medio</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-
 // Componente Homepage - Stile Appito
 function HomePage({ onNavigate }) {
   const menuItems = [
@@ -294,7 +58,7 @@ function HomePage({ onNavigate }) {
     { id: 'feed', icon: '💬', title: 'Feed', subtitle: 'News e aggiornamenti', color: '#16a34a' },
     { id: 'statistiche', icon: '📊', title: 'Statistiche', subtitle: 'Analisi performance', color: '#7c3aed' },
     // 🔥 AGGIUNTA: Pagina Profilo
-    { id: 'profilo', icon: '👤', title: 'Il Mio Profilo', subtitle: 'Gestisci i tuoi ruoli', color: '#059669' },
+    { id: 'profilo', icon: '👤', title: 'Il Mio Profilo', subtitle: 'Gestisci il tuo profilo', color: '#059669' },
     { id: 'impostazioni', icon: '⚙️', title: 'Impostazioni', subtitle: 'Preferenze sistema', color: '#475569' }
   ];
 
@@ -367,23 +131,15 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     try {
       // PRIMA: carica i dati del giocatore
       const { data: giocatoreData, error: giocatoreError } = await supabase
-        .from('giocatori')
+        .from('profili_utenti')
         .select('*')
         .eq('id', giocatoreId)
         .single();
       
       if (giocatoreError) throw giocatoreError;
 
-      // SECONDO: carica i ruoli del giocatore
-      const { data: ruoliData, error: ruoliError } = await supabase
-        .from('ruoli_giocatore')
-        .select('*')
-        .eq('giocatore_id', giocatoreId)
-        .single();
-
       if (giocatoreData) {
         setGiocatore(giocatoreData);
-        setRuoliGiocatore(ruoliData);
         setProvinciaSelezionata(giocatoreData.provincia || '');
         setComuneSelezionato(giocatoreData.comune || '');
       }
@@ -408,7 +164,7 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const salvaPosizione = async () => {
     if (provinciaSelezionata && comuneSelezionato) {
       await supabase
-        .from('giocatori')
+        .from('profili_utenti')
         .update({ 
           provincia: provinciaSelezionata,
           comune: comuneSelezionato 
@@ -445,7 +201,7 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
             {giocatore.nome_completo.charAt(0)}
           </div>
           <h2 className="profile-name">{giocatore.nome_completo}</h2>
-          <div className="profile-badge">{giocatore.livello_iniziale}</div>
+          <div className="profile-badge">{giocatore.livello_scarparo}</div>
         </div>
 
         <div className="info-grid">
@@ -462,11 +218,13 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
           <div className="info-card">
             <h3>🎯 Ruoli</h3>
             <div className="ruoli-list">
-              {ruoliGiocatore?.portiere && <span className="ruolo">Portiere</span>}
-              {ruoliGiocatore?.difensore && <span className="ruolo">Difensore</span>}
-              {ruoliGiocatore?.centrocampista && <span className="ruolo">Centrocampista</span>}
-              {ruoliGiocatore?.attaccante && <span className="ruolo">Attaccante</span>}
-              {!ruoliGiocatore && <span className="ruolo-empty">Ruoli non specificati</span>}
+              {giocatore?.portiere && <span className="ruolo">Portiere</span>}
+              {giocatore?.difensore && <span className="ruolo">Difensore</span>}
+              {giocatore?.centrocampista && <span className="ruolo">Centrocampista</span>}
+              {giocatore?.attaccante && <span className="ruolo">Attaccante</span>}
+              {!giocatore.portiere && !giocatore.difensore && !giocatore.centrocampista && !giocatore.attaccante && (
+                <span className="ruolo-empty">Ruoli non specificati</span>
+              )}
             </div>
           </div>
           
@@ -555,7 +313,7 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
 
           <div className="info-card">
             <h3>📅 Data Iscrizione</h3>
-            <p>{giocatore.created_at ? new Date(giocatore.created_at).toLocaleDateString('it-IT') : 'Non specificata'}</p>
+            <p>{giocatore.data_iscrizione ? new Date(giocatore.data_iscrizione).toLocaleDateString('it-IT') : 'Non specificata'}</p>
           </div>
         </div>
       </main>
@@ -573,7 +331,7 @@ function GiocatoriPage({ onBack, onNavigate }) {
 
   const fetchGiocatori = async () => {
     const { data, error } = await supabase
-      .from('giocatori')
+      .from('profili_utenti')
       .select('*')
       .order('nome_completo', { ascending: true });
     
@@ -607,13 +365,13 @@ function GiocatoriPage({ onBack, onNavigate }) {
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {giocatori.filter(g => g.livello_iniziale === 'Avanzato').length}
+              {giocatori.filter(g => g.livello_scarparo === 'avanzato').length}
             </span>
             <span className="stat-label">Avanzati</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">
-              {giocatori.filter(g => g.livello_iniziale === 'Intermedio').length}
+              {giocatori.filter(g => g.livello_scarparo === 'intermedio').length}
             </span>
             <span className="stat-label">Intermedi</span>
           </div>
@@ -653,7 +411,7 @@ function GiocatoriPage({ onBack, onNavigate }) {
                     </p>
                   </div>
                   <div className="item-badge">
-                    {giocatore.livello_iniziale || 'Non specificato'}
+                    {giocatore.livello_scarparo || 'Non specificato'}
                   </div>
                 </div>
               ))
@@ -742,9 +500,9 @@ function App() {
       case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
       case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi': return <EventiPage onBack={handleBack} />;
-      // 🔥 AGGIUNTA: Pagina Profilo
-      case 'profilo': return <ProfiloPage onBack={handleBack} />;
-      case 'home': default: return <HomePage onNavigate={setCurrentPage} />;
+      // 🔥 AGGIUNTA: Pagina Profilo con il nuovo componente
+      case 'profilo': return <ProfiloUtente onBack={handleBack} />;
+      case 'home': default: return <HomePage onNavigate={handleNavigate} />;
     }
   };
 
