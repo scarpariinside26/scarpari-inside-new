@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
-import profiloUtente from './components/profiloUtente';
+import ProfiloUtente from './components/ProfiloUtente';
 
 // Helper function per colori avatar
 function getColorFromName(name) {
