@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Urbanist:wght@400;600;800&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -5,9 +7,9 @@
 }
 
 body {
-  background: #1a1a1a;
+  background: #000;
   color: #fff;
-  font-family: 'Arial Black', 'Arial', sans-serif;
+  font-family: 'Urbanist', sans-serif;
   min-height: 100vh;
 }
 
@@ -16,15 +18,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(45deg, #8B0000, #000000, #8B0000);
-  background-size: 400% 400%;
-  animation: fieryBackground 10s ease infinite;
-}
-
-@keyframes fieryBackground {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  background: 
+    radial-gradient(circle at 20% 80%, #ff0000 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, #8B0000 0%, transparent 50%),
+    #000000;
+  background-size: cover;
 }
 
 .main-content {
@@ -34,65 +32,78 @@ body {
 }
 
 h1 {
-  font-size: 3.5rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 4.5rem;
   margin-bottom: 3rem;
   text-transform: uppercase;
-  letter-spacing: 3px;
-  color: #ff0000;
-  text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
-  animation: glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes glow {
-  from { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000; }
-  to { text-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 40px #ff0000; }
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 2px 2px 0px #ff0000, 4px 4px 0px #000;
+  transform: skew(-5deg);
 }
 
 .message {
-  font-size: 1.4rem;
-  line-height: 1.8;
+  font-size: 1.3rem;
+  line-height: 1.6;
   margin-bottom: 3rem;
+  font-weight: 600;
 }
 
 .message p {
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.8rem 1.5rem;
+  border-radius: 0;
+  border-left: 4px solid #ff0000;
+  backdrop-filter: blur(10px);
 }
 
 .highlight {
-  font-size: 2.5rem;
-  color: #ffd700;
-  text-shadow: 0 0 10px #ffd700;
-  margin-top: 1.5rem;
-  font-weight: bold;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 2px 2px 0px #ff0000;
+  margin-top: 2rem;
+  background: linear-gradient(45deg, #ff0000, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding: 0.5rem 2rem;
+  border: 2px solid #ff0000;
+  display: inline-block;
+  transform: skew(-5deg);
 }
 
 .signature {
-  margin-top: 2rem;
+  margin-top: 3rem;
   font-style: italic;
-  color: #ccc;
-  border-top: 1px solid #444;
-  padding-top: 1rem;
-  font-size: 1.1rem;
+  color: #888;
+  border-top: 2px solid #333;
+  padding-top: 1.5rem;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  font-weight: 400;
 }
 
-/* Effetto responsive */
+/* Effetti hover street */
+.message p:hover {
+  transform: translateX(10px);
+  transition: transform 0.3s ease;
+  border-left: 4px solid #ff6b6b;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   h1 {
-    font-size: 2.5rem;
+    font-size: 3rem;
+    letter-spacing: 2px;
   }
   
   .message {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .highlight {
-    font-size: 2rem;
+    font-size: 2.2rem;
+    padding: 0.5rem 1rem;
   }
 }
