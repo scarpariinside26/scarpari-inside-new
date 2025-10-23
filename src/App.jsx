@@ -3,6 +3,14 @@ import { supabase } from './supabaseClient';
 import './App.css';
 import ProfiloUtente from './components/ProfiloUtente';
 
+function App() {
+  return (
+    <div className="App">
+      <ProfiloUtente />
+    </div>
+  );
+}
+
 // Helper function per colori avatar
 function getColorFromName(name) {
   const colors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#475569'];
