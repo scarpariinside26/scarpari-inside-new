@@ -488,8 +488,6 @@ function App() {
     setSelectedGiocatoreId(null);
   };
 
-   // ... il resto del codice ...
-
   const renderPage = () => {
     switch (currentPage) {
       case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
@@ -503,6 +501,6 @@ function App() {
   };
 
   return <div className="appito-app">{renderPage()}</div>;
-}
+} // ← PARENTESI DI CHIUSURA DELLA FUNZIONE App
 
 export default App;
