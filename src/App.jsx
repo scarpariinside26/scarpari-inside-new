@@ -3,6 +3,8 @@ import { supabase } from './supabaseClient';
 import './App.css';
 import ProfiloUtente from './components/ProfiloUtente';
 import GeneratoreSquadre from './components/GeneratoreSquadre';
+import Classifica from './components/Classifica';
+import GeneratoreSquadre from './components/GeneratoreSquadre';
 
 // Helper function per colori avatar
 function getColorFromName(name) {
@@ -494,6 +496,8 @@ function App() {
       case 'profilo': return <ProfiloUtente onBack={handleBack} />;
       case 'genera-squadre': return <GeneratoreSquadre onBack={handleBack} />;
       case 'home': default: return <HomePage onNavigate={handleNavigate} />;
+        case 'classifica': return <Classifica onBack={handleBack} />;
+case 'genera-squadre': return <GeneratoreSquadre onBack={handleBack} />;
     }
   };
 
