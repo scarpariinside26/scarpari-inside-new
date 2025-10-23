@@ -236,3 +236,23 @@ export default function GeneratoreSquadre({ onBack }) {
     </div>
   );
 }
+import React from 'react';
+
+export default function GeneratoreSquadre({ onBack }) {
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Generatore Squadre</h1>
+      </header>
+      
+      <main className="page-content">
+        <div className="info-card">
+          <h2>🎲 Generatore Squadre</h2>
+          <p>Funzionalità in sviluppo - Disponibile prossimamente!</p>
+          <p>Qui potrai generare squadre bilanciate automaticamente.</p>
+        </div>
+      </main>
+    </div>
+  );
+}
