@@ -1,7 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
-import ProfiloUtente from './components/ProfiloUtente';
+// TEMPORANEAMENTE sostituisci l'import con:
+function ProfiloUtente({ onBack }) {
+  return (
+    <div className="appito-page">
+      <header className="page-header">
+        <button onClick={onBack} className="back-button">←</button>
+        <h1>Il Mio Profilo</h1>
+      </header>
+      <main className="page-content">
+        <div style={{padding: '20px', textAlign: 'center'}}>
+          <h2>Profilo Utente</h2>
+          <p>Componente in sviluppo - Disponibile prossimamente</p>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 
 // Helper function per colori avatar
 function getColorFromName(name) {
