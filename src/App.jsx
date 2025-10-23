@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 import ProfiloUtente from './components/ProfiloUtente';
+import GeneratoreSquadre from './components/GeneratoreSquadre';
 
 // Helper function per colori avatar
 function getColorFromName(name) {
@@ -58,6 +59,7 @@ function HomePage({ onNavigate }) {
     { id: 'feed', icon: '💬', title: 'Feed', subtitle: 'News e aggiornamenti', color: '#16a34a' },
     { id: 'statistiche', icon: '📊', title: 'Statistiche', subtitle: 'Analisi performance', color: '#7c3aed' },
     { id: 'profilo', icon: '👤', title: 'Il Mio Profilo', subtitle: 'Gestisci il tuo profilo', color: '#059669' },
+    { id: 'genera-squadre', icon: '🎲', title: 'Genera Squadre', subtitle: 'Crea squadre bilanciate', color: '#8b5cf6' },
     { id: 'impostazioni', icon: '⚙️', title: 'Impostazioni', subtitle: 'Preferenze sistema', color: '#475569' }
   ];
 
@@ -332,6 +334,7 @@ function GiocatoriPage({ onBack, onNavigate }) {
     }
     
     if (data) {
+      console.log('Giocatori caricati:', data);
       setGiocatori(data);
     }
   };
@@ -491,6 +494,7 @@ function App() {
       case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi': return <EventiPage onBack={handleBack} />;
       case 'profilo': return <ProfiloUtente onBack={handleBack} />;
+      case 'genera-squadre': return <GeneratoreSquadre onBack={handleBack} />;
       case 'home': default: return <HomePage onNavigate={handleNavigate} />;
     }
   };
