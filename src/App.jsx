@@ -1,24 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
-// TEMPORANEAMENTE sostituisci l'import con:
-function ProfiloUtente({ onBack }) {
-  return (
-    <div className="appito-page">
-      <header className="page-header">
-        <button onClick={onBack} className="back-button">←</button>
-        <h1>Il Mio Profilo</h1>
-      </header>
-      <main className="page-content">
-        <div style={{padding: '20px', textAlign: 'center'}}>
-          <h2>Profilo Utente</h2>
-          <p>Componente in sviluppo - Disponibile prossimamente</p>
-        </div>
-      </main>
-    </div>
-  );
-}
-
+import ProfiloUtente from './components/ProfiloUtente';
 
 // Helper function per colori avatar
 function getColorFromName(name) {
@@ -74,7 +57,6 @@ function HomePage({ onNavigate }) {
     { id: 'classifica', icon: '🏆', title: 'Classifica', subtitle: 'Statistiche e ranking', color: '#ea580c' },
     { id: 'feed', icon: '💬', title: 'Feed', subtitle: 'News e aggiornamenti', color: '#16a34a' },
     { id: 'statistiche', icon: '📊', title: 'Statistiche', subtitle: 'Analisi performance', color: '#7c3aed' },
-    // 🔥 AGGIUNTA: Pagina Profilo
     { id: 'profilo', icon: '👤', title: 'Il Mio Profilo', subtitle: 'Gestisci il tuo profilo', color: '#059669' },
     { id: 'impostazioni', icon: '⚙️', title: 'Impostazioni', subtitle: 'Preferenze sistema', color: '#475569' }
   ];
@@ -107,7 +89,6 @@ function HomePage({ onNavigate }) {
         <button className="nav-item active"><span>🏠</span><span>Home</span></button>
         <button className="nav-item"><span>📅</span><span>Eventi</span></button>
         <button className="nav-item"><span>👥</span><span>Giocatori</span></button>
-        {/* 🔥 MODIFICA: Collegamento al Profilo */}
         <button className="nav-item" onClick={() => onNavigate('profilo')}>
           <span>👤</span><span>Profilo</span>
         </button>
@@ -116,10 +97,9 @@ function HomePage({ onNavigate }) {
   );
 }
 
-// Componente Dettaglio Giocatore con Selezione Posizione - VERSIONE CORRETTA
+// Componente Dettaglio Giocatore
 function DettaglioGiocatorePage({ onBack, giocatoreId }) {
   const [giocatore, setGiocatore] = useState(null);
-  const [ruoliGiocatore, setRuoliGiocatore] = useState(null);
   const [modificaPosizione, setModificaPosizione] = useState(false);
   const [provinciaSelezionata, setProvinciaSelezionata] = useState('');
   const [comuneSelezionato, setComuneSelezionato] = useState('');
@@ -131,7 +111,6 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     caricaDatiGiocatore();
   }, [giocatoreId]);
 
-  // Click outside per chiudere il dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -143,10 +122,8 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 🔥 RINOMINATO: caricaDatiGiocatore invece di fetchGiocatore
   const caricaDatiGiocatore = async () => {
     try {
-      // PRIMA: carica i dati del giocatore
       const { data: giocatoreData, error: giocatoreError } = await supabase
         .from('profili_utenti')
         .select('*')
@@ -165,7 +142,6 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
     }
   };
 
-  // Filtra comuni in base alla provincia e ricerca
   const comuniFiltrati = provinciaSelezionata 
     ? comuniVeneto[provinciaSelezionata].filter(comune =>
         comune.toLowerCase().includes(ricercaComune.toLowerCase())
@@ -231,7 +207,6 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
             <p>{giocatore.telefono || 'Non specificato'}</p>
           </div>
           
-          {/* SEZIONE RUOLI AGGIORNATA */}
           <div className="info-card">
             <h3>🎯 Ruoli</h3>
             <div className="ruoli-list">
@@ -245,7 +220,6 @@ function DettaglioGiocatorePage({ onBack, giocatoreId }) {
             </div>
           </div>
           
-          {/* CAMPO POSIZIONE */}
           <div className="info-card">
             <div className="posizione-header">
               <h3>🏠 Posizione</h3>
@@ -358,7 +332,6 @@ function GiocatoriPage({ onBack, onNavigate }) {
     }
     
     if (data) {
-      console.log('Giocatori caricati:', data);
       setGiocatori(data);
     }
   };
@@ -517,7 +490,6 @@ function App() {
       case 'giocatori': return <GiocatoriPage onBack={handleBack} onNavigate={handleNavigate} />;
       case 'dettaglio-giocatore': return <DettaglioGiocatorePage onBack={handleBack} giocatoreId={selectedGiocatoreId} />;
       case 'eventi': return <EventiPage onBack={handleBack} />;
-      // 🔥 AGGIUNTA: Pagina Profilo con il nuovo componente
       case 'profilo': return <ProfiloUtente onBack={handleBack} />;
       case 'home': default: return <HomePage onNavigate={handleNavigate} />;
     }
