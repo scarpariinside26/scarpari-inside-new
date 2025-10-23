@@ -501,7 +501,7 @@ function App() {
     }
   };
 
-  return <div className="appito-app">{renderPage()}</div>;
+ return <div className="appito-app">{renderPage()}</div>;
 }
 
 export default App;
