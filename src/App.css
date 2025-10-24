@@ -1,3 +1,10 @@
+/* Logo styling */
+.logo-image {
+  max-width: 120px; /* Dimensione ragionevole */
+  height: auto;
+  margin-bottom: 1rem;
+}
+
 /* Stili per i link come pulsanti */
 .menu-grid a {
   text-decoration: none;
