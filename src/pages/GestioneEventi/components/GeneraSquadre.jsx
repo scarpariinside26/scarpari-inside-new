@@ -12,19 +12,19 @@ function GeneraSquadre() {
   const [votiTemporanei, setVotiTemporanei] = useState({});
   const [salvataggioVoti, setSalvataggioVoti] = useState(false);
 
-  // Carica giocatori e voti
+  // Carica giocatori con dati reali dalla classifica
   useEffect(() => {
-    caricaGiocatoriEVoti();
+    caricaGiocatoriConClassifica();
   }, []);
 
-  const caricaGiocatoriEVoti = async () => {
+  const caricaGiocatoriConClassifica = async () => {
     try {
       setCaricamentoGiocatori(true);
       setErrore('');
       
-      console.log('📡 Caricamento giocatori e voti dal database...');
+      console.log('📡 Caricamento giocatori dalla classifica...');
       
-      // PRIMA prova con JOIN completo
+      // Carica dalla classifica con join ai profili
       let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
@@ -34,209 +34,81 @@ function GeneraSquadre() {
             nome_completo,
             nickname,
             livello_scarparo,
-            portiere,
-            difensore,
-            centrocampista,
-            attaccante
-          ),
-          voti_giocatori!left (
-            id,
-            voto,
-            created_at
+            email,
+            telefono
           )
         `)
         .order('punteggio_calcolato', { ascending: false });
 
-      // Se errore RLS, usa approccio alternativo
-      if (error && (error.message.includes('recursion') || error.message.includes('policy'))) {
-        console.log('🔄 Errore RLS rilevato, uso approccio alternativo...');
-        await caricaConApproccioAlternativo();
-        return;
-      }
-
-      if (error) {
-        console.error('❌ Errore query:', error);
-        setErrore(`Errore database: ${error.message}`);
-        throw error;
-      }
-
-      console.log('✅ Dati caricati:', giocatoriDB);
-
-      if (!giocatoriDB || giocatoriDB.length === 0) {
-        console.log('⚠️ Nessun giocatore nella classifica');
-        setErrore('Nessun giocatore trovato nella classifica. La tabella "classifiche" potrebbe essere vuota.');
+      // Se errore o classifica vuota, carica dai profili
+      if (error || !giocatoriDB || giocatoriDB.length === 0) {
+        console.log('🔄 Classifica vuota o errore, carico dai profili...');
         await caricaDaProfiliUtenti();
         return;
       }
 
-      // Mappa i giocatori con voti
-      const giocatoriMappati = giocatoriDB.map(giocatore => {
-        // Calcola il livello basato sul punteggio_calcolato o livello_scarparo
-        let livello = 50;
-        let votoAttuale = null;
-        
-        if (giocatore.punteggio_calcolato) {
-          livello = Math.round((giocatore.punteggio_calcolato - 4) * 20);
-        } else if (giocatore.profili_utenti?.livello_scarparo) {
-          const livelli = {
-            'principiante': 40,
-            'intermedio': 65,
-            'avanzato': 85
-          };
-          livello = livelli[giocatore.profili_utenti.livello_scarparo] || 50;
+      console.log('✅ Dati classifica caricati:', giocatoriDB);
+
+      // Mappa i giocatori con i dati reali
+      const giocatoriMappati = giocatoriDB.map(record => {
+        // Calcola livello basato sul punteggio_calcolato (voto reale)
+        let livello = 50; // Default
+        if (record.punteggio_calcolato) {
+          // Converti il voto in livello (es: voto 7.5 -> livello 75)
+          livello = Math.round(record.punteggio_calcolato * 10);
         }
 
-        // Gestisci voti
-        if (giocatore.voti_giocatori && giocatore.voti_giocatori.length > 0) {
-          // Prendi l'ultimo voto (più recente)
-          const ultimoVoto = giocatore.voti_giocatori.sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          )[0];
-          votoAttuale = ultimoVoto.voto;
-        }
+        // Limita il livello tra 30 e 100
+        livello = Math.max(30, Math.min(100, livello));
 
         // Ottieni il nome
-        const nomeCompleto = giocatore.profili_utenti?.nome_completo 
-          || giocatore.profili_utenti?.nickname
-          || `Giocatore ${giocatore.id}`;
-
-        return {
-          id: giocatore.id,
-          giocatore_id: giocatore.giocatore_id,
-          nome: nomeCompleto,
-          livello: Math.max(30, Math.min(100, livello)),
-          voto_attuale: votoAttuale,
-          selezionato: false,
-          punteggio_calcolato: giocatore.punteggio_calcolato,
-          media_voto: giocatore.media_voto,
-          partite_giocate: giocatore.partite_giocate,
-          gol_segnati: giocatore.gol_segnati,
-          livello_scarparo: giocatore.profili_utenti?.livello_scarparo,
-          ruolo: {
-            portiere: giocatore.portiere || giocatore.profili_utenti?.portiere,
-            difensore: giocatore.difensore || giocatore.profili_utenti?.difensore,
-            centrocampista: giocatore.centrocampista || giocatore.profili_utenti?.centrocampista,
-            attaccante: giocatore.attaccante || giocatore.profili_utenti?.attaccante
-          }
-        };
-      });
-
-      console.log('🎯 Giocatori con voti:', giocatoriMappati);
-      setGiocatori(giocatoriMappati);
-
-    } catch (error) {
-      console.error('❌ Errore caricamento giocatori:', error);
-      setErrore(`Errore: ${error.message}`);
-    } finally {
-      setCaricamentoGiocatori(false);
-    }
-  };
-
-  // APPROCCIO ALTERNATIVO con caricamento voti separato
-  const caricaConApproccioAlternativo = async () => {
-    try {
-      console.log('🔄 Caricamento con approccio alternativo...');
-      
-      // Carica classifiche e profili SEPARATAMENTE
-      const { data: classifica, error: errorClassifica } = await supabase
-        .from('classifiche')
-        .select('*')
-        .order('punteggio_calcolato', { ascending: false });
-
-      if (errorClassifica) throw errorClassifica;
-
-      if (!classifica || classifica.length === 0) {
-        await caricaDaProfiliUtenti();
-        return;
-      }
-
-      // Carica ID unici dei giocatori
-      const giocatoreIds = [...new Set(classifica.map(c => c.giocatore_id))];
-      
-      // Carica profili separatamente
-      const { data: profili, error: errorProfili } = await supabase
-        .from('profili_utenti')
-        .select('*')
-        .in('id', giocatoreIds);
-
-      // Carica voti separatamente
-      const { data: voti, error: errorVoti } = await supabase
-        .from('voti_giocatori')
-        .select('*')
-        .in('giocatore_id', giocatoreIds);
-
-      if (errorProfili) console.warn('⚠️ Errore caricamento profili:', errorProfili);
-      if (errorVoti) console.warn('⚠️ Errore caricamento voti:', errorVoti);
-
-      // Combina manualmente i dati
-      const giocatoriCombinati = classifica.map(record => {
-        const profilo = profili?.find(p => p.id === record.giocatore_id);
-        const votiGiocatore = voti?.filter(v => v.giocatore_id === record.giocatore_id) || [];
-        
-        // Calcola livello
-        let livello = 50;
-        if (record.punteggio_calcolato) {
-          livello = Math.round((record.punteggio_calcolato - 4) * 20);
-        } else if (profilo?.livello_scarparo) {
-          const livelli = {
-            'principiante': 40,
-            'intermedio': 65,
-            'avanzato': 85
-          };
-          livello = livelli[profilo.livello_scarparo] || 50;
-        }
-
-        // Gestisci voti
-        let votoAttuale = null;
-        if (votiGiocatore.length > 0) {
-          const ultimoVoto = votiGiocatore.sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          )[0];
-          votoAttuale = ultimoVoto.voto;
-        }
-
-        // Nome
-        const nomeCompleto = profilo?.nome_completo 
-          || profilo?.nickname
+        const nomeCompleto = record.profili_utenti?.nome_completo 
+          || record.profili_utenti?.nickname
           || `Giocatore ${record.giocatore_id}`;
 
         return {
           id: record.id,
           giocatore_id: record.giocatore_id,
           nome: nomeCompleto,
-          livello: Math.max(30, Math.min(100, livello)),
-          voto_attuale: votoAttuale,
+          livello: livello,
+          voto_attuale: record.punteggio_calcolato, // Usa il voto reale come voto attuale
           selezionato: false,
+          // Dati dalla classifica
           punteggio_calcolato: record.punteggio_calcolato,
           media_voto: record.media_voto,
           partite_giocate: record.partite_giocate,
           gol_segnati: record.gol_segnati,
-          livello_scarparo: profilo?.livello_scarparo,
+          assist: record.assist,
+          punti_classifica: record.punti_classifica,
+          // Ruoli
           ruolo: {
-            portiere: profilo?.portiere,
-            difensore: profilo?.difensore,
-            centrocampista: profilo?.centrocampista,
-            attaccante: profilo?.attaccante
+            portiere: record.portiere,
+            difensore: record.difensore,
+            centrocampista: record.centrocampista,
+            attaccante: record.attaccante,
+            jolly: record.jolly
           },
-          approccio_alternativo: true
+          stagione: record.stagione,
+          da_classifica: true
         };
       });
 
-      console.log('✅ Giocatori con voti (alternativo):', giocatoriCombinati);
-      setGiocatori(giocatoriCombinati);
-      setErrore(`Caricati ${giocatoriCombinati.length} giocatori con voti (modalità alternativa)`);
+      setGiocatori(giocatoriMappati);
+      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori dalla classifica`);
 
     } catch (error) {
-      console.error('❌ Errore approccio alternativo:', error);
+      console.error('❌ Errore caricamento classifica:', error);
       setErrore(`Errore caricamento: ${error.message}`);
       await caricaDaProfiliUtenti();
+    } finally {
+      setCaricamentoGiocatori(false);
     }
   };
 
   // Fallback: carica dai profili utenti
   const caricaDaProfiliUtenti = async () => {
     try {
-      console.log('🔄 Tentativo caricamento da profili_utenti...');
+      console.log('🔄 Caricamento da profili_utenti...');
       
       const { data: profiliDB, error } = await supabase
         .from('profili_utenti')
@@ -251,31 +123,14 @@ function GeneraSquadre() {
         return;
       }
 
-      // Carica voti per questi profili
-      const profiliIds = profiliDB.map(p => p.id);
-      const { data: voti, error: errorVoti } = await supabase
-        .from('voti_giocatori')
-        .select('*')
-        .in('giocatore_id', profiliIds);
-
-      if (errorVoti) console.warn('Errore caricamento voti:', errorVoti);
-
+      // Mappa i giocatori dai profili
       const giocatoriMappati = profiliDB.map(profilo => {
-        const votiGiocatore = voti?.filter(v => v.giocatore_id === profilo.id) || [];
-        let votoAttuale = null;
-
-        if (votiGiocatore.length > 0) {
-          const ultimoVoto = votiGiocatore.sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-          )[0];
-          votoAttuale = ultimoVoto.voto;
-        }
-
         const livelli = {
           'principiante': 40,
           'intermedio': 65,
           'avanzato': 85,
-          'decentrato': 50
+          'decentrato': 50,
+          'scarso': 35
         };
         
         const livello = livelli[profilo.livello_scarparo] || 50;
@@ -285,7 +140,7 @@ function GeneraSquadre() {
           giocatore_id: profilo.id,
           nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
           livello: livello,
-          voto_attuale: votoAttuale,
+          voto_attuale: null, // Nessun voto dai profili
           selezionato: false,
           livello_scarparo: profilo.livello_scarparo,
           ruolo: {
@@ -299,7 +154,7 @@ function GeneraSquadre() {
       });
 
       setGiocatori(giocatoriMappati);
-      setErrore(`Caricati ${giocatoriMappati.length} giocatori dai profili con voti`);
+      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori dai profili (classifica vuota)`);
 
     } catch (error) {
       console.error('❌ Errore caricamento profili:', error);
@@ -309,7 +164,6 @@ function GeneraSquadre() {
 
   // APRI MODAL PER INSERIMENTO VOTI
   const apriModalVoti = () => {
-    // Inizializza voti temporanei con i voti attuali
     const votiIniziali = {};
     giocatori.forEach(giocatore => {
       votiIniziali[giocatore.giocatore_id || giocatore.id] = giocatore.voto_attuale || '';
@@ -320,7 +174,6 @@ function GeneraSquadre() {
 
   // AGGIORNA VOTO TEMPORANEO
   const aggiornaVotoTemporaneo = (giocatoreId, voto) => {
-    // Convalida voto (da 1 a 10)
     if (voto === '' || (voto >= 1 && voto <= 10)) {
       setVotiTemporanei(prev => ({
         ...prev,
@@ -339,7 +192,7 @@ function GeneraSquadre() {
         .map(([giocatoreId, voto]) => ({
           giocatore_id: giocatoreId,
           voto: voto,
-          creato_da: 'admin' // O usa auth.uid() se hai autenticazione
+          creato_da: 'admin'
         }));
 
       console.log('💾 Salvando voti:', votiDaSalvare);
@@ -361,7 +214,7 @@ function GeneraSquadre() {
       alert(`✅ ${votiDaSalvare.length} voti salvati con successo!`);
       
       // Ricarica i giocatori per aggiornare i voti
-      await caricaGiocatoriEVoti();
+      await caricaGiocatoriConClassifica();
       setModalVoti(false);
 
     } catch (error) {
@@ -372,7 +225,7 @@ function GeneraSquadre() {
     }
   };
 
-  // FUNZIONI ESISTENTI (modificate per considerare i voti)
+  // FUNZIONI PER SELEZIONE GIOCATORI
   const toggleSelezioneGiocatore = (giocatoreId) => {
     setGiocatori(prev => prev.map(g => 
       g.id === giocatoreId ? { ...g, selezionato: !g.selezionato } : g
@@ -398,6 +251,7 @@ function GeneraSquadre() {
     ));
   };
 
+  // GENERA SQUADRE
   const generaSquadre = () => {
     setLoading(true);
     
@@ -497,18 +351,22 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     alert('📋 Risultati copiati negli appunti!');
   };
 
+  // STATISTICHE
   const giocatoriSelezionatiCount = giocatori.filter(g => g.selezionato).length;
   const giocatoriConVoto = giocatori.filter(g => g.voto_attuale !== null).length;
   const livelloMedio = giocatori.length > 0 
     ? Math.round(giocatori.reduce((sum, g) => sum + g.livello, 0) / giocatori.length)
+    : 0;
+  const votoMedio = giocatori.length > 0 
+    ? (giocatori.reduce((sum, g) => sum + (g.voto_attuale || 0), 0) / giocatori.filter(g => g.voto_attuale).length).toFixed(2)
     : 0;
 
   if (caricamentoGiocatori) {
     return (
       <div className="genera-squadre-container">
         <div className="loading">
-          <h3>🔄 Caricamento giocatori e voti...</h3>
-          <p>Sto leggendo classifica, profili e voti dei giocatori</p>
+          <h3>🔄 Caricamento giocatori dal database...</h3>
+          <p>Sto leggendo la classifica con i voti reali</p>
         </div>
       </div>
     );
@@ -518,7 +376,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Basato sui giocatori reali del database con sistema voti</p>
+        <p>Basato sui giocatori reali con voti dalla classifica</p>
       </div>
 
       {/* MESSAGGIO ERRORE */}
@@ -536,6 +394,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           <span className="stat">Selezionati: {giocatoriSelezionatiCount}</span>
           <span className="stat">Con voto: {giocatoriConVoto}</span>
           <span className="stat">Livello medio: {livelloMedio}</span>
+          {votoMedio > 0 && <span className="stat">Voto medio: {votoMedio}</span>}
         </div>
         
         <div className="azioni-rapide">
@@ -553,6 +412,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           </button>
           <button onClick={() => selezionaNumero(10)} className="btn-secondary">
             Seleziona 10
+          </button>
+          <button onClick={() => selezionaNumero(16)} className="btn-secondary">
+            Seleziona 16
           </button>
         </div>
       </div>
@@ -575,8 +437,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <h3>
           {giocatori.length > 0 && giocatori[0].da_profili 
             ? 'Giocatori dai Profili Utenti' 
-            : giocatori.length > 0 && giocatori[0].approccio_alternativo
-            ? 'Giocatori (Modalità Alternativa)'
             : 'Giocatori dalla Classifica'
           } 
           ({giocatoriSelezionatiCount} selezionati, {giocatoriConVoto} con voto)
@@ -585,7 +445,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         {giocatori.length === 0 ? (
           <div className="empty-state">
             <h4>📭 Nessun giocatore trovato</h4>
-            <p>Il database non contiene giocatori o la classifica è vuota</p>
+            <p>Il database non contiene giocatori</p>
           </div>
         ) : (
           <div className="giocatori-grid">
@@ -602,8 +462,8 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                     {giocatore.voto_attuale && (
                       <span className="voto-attuale">⭐ Voto: {giocatore.voto_attuale}</span>
                     )}
-                    {giocatore.livello_scarparo && (
-                      <span className="livello-scarparo">({giocatore.livello_scarparo})</span>
+                    {giocatore.partite_giocate && (
+                      <span className="partite">Partite: {giocatore.partite_giocate}</span>
                     )}
                   </div>
                 </div>
@@ -654,7 +514,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                       type="number"
                       min="1"
                       max="10"
-                      step="0.5"
+                      step="0.1"
                       value={votiTemporanei[giocatore.giocatore_id || giocatore.id] || ''}
                       onChange={(e) => aggiornaVotoTemporaneo(
                         giocatore.giocatore_id || giocatore.id, 
@@ -664,7 +524,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                     />
                     {giocatore.voto_attuale && (
                       <span className="voto-precedente">
-                        Precedente: {giocatore.voto_attuale}
+                        Attuale: {giocatore.voto_attuale}
                       </span>
                     )}
                   </div>
