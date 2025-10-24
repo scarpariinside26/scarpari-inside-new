@@ -7,10 +7,10 @@ function GeneraSquadre() {
   const [squadreGenerate, setSquadreGenerate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bilanciaLivello, setBilanciaLivello] = useState(true);
+  const [bilanciaRuoli, setBilanciaRuoli] = useState(true);
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
   const [errore, setErrore] = useState('');
   const [ricerca, setRicerca] = useState('');
-  const [datiClassifica, setDatiClassifica] = useState([]);
 
   useEffect(() => {
     caricaGiocatoriConClassifica();
@@ -32,27 +32,6 @@ function GeneraSquadre() {
       setCaricamentoGiocatori(true);
       setErrore('');
       
-      console.log('🔍 Controllo dati classifica...');
-      
-      // PRIMA controlla se ci sono dati nella classifica
-      let { data: classificaData, error: classificaError } = await supabase
-        .from('classifiche')
-        .select('*')
-        .limit(5);
-
-      if (classificaError) throw classificaError;
-
-      console.log('📊 Dati classifica trovati:', classificaData);
-      setDatiClassifica(classificaData);
-
-      // Se la classifica è VUOTA, carica solo dai profili
-      if (!classificaData || classificaData.length === 0) {
-        console.log('❌ CLASSIFICA VUOTA - carico solo profili');
-        await caricaSoloProfili();
-        return;
-      }
-
-      // Se ci sono dati nella classifica, carica con join
       let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
@@ -60,19 +39,33 @@ function GeneraSquadre() {
           profili_utenti:giocatore_id (
             id,
             nome_completo,
-            nickname
+            nickname,
+            portiere,
+            difensore,
+            centrocampista,
+            attaccante
           )
         `)
         .order('punteggio_calcolato', { ascending: false });
 
-      if (error) throw error;
-
-      console.log('✅ Dati caricati con successo:', giocatoriDB);
+      if (error || !giocatoriDB || giocatoriDB.length === 0) {
+        await caricaSoloProfili();
+        return;
+      }
 
       const giocatoriMappati = giocatoriDB.map(record => {
         const nomeCompleto = record.profili_utenti?.nome_completo 
           || record.profili_utenti?.nickname
           || `Giocatore ${record.giocatore_id}`;
+
+        // Determina il ruolo principale
+        const ruoli = [];
+        if (record.portiere || record.profili_utenti?.portiere) ruoli.push('portiere');
+        if (record.difensore || record.profili_utenti?.difensore) ruoli.push('difensore');
+        if (record.centrocampista || record.profili_utenti?.centrocampista) ruoli.push('centrocampista');
+        if (record.attaccante || record.profili_utenti?.attaccante) ruoli.push('attaccante');
+        
+        const ruoloPrincipale = ruoli.length > 0 ? ruoli[0] : 'centrocampista';
 
         return {
           id: record.id,
@@ -81,15 +74,15 @@ function GeneraSquadre() {
           voto: record.punteggio_calcolato,
           partite_giocate: record.partite_giocate,
           selezionato: false,
+          ruolo: ruoloPrincipale,
+          ruoliMultipli: ruoli,
           da_classifica: true
         };
       });
 
       giocatoriMappati.sort((a, b) => a.nome.localeCompare(b.nome));
-
       setGiocatori(giocatoriMappati);
       setGiocatoriFiltrati(giocatoriMappati);
-      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori con VOTI REALI dalla classifica`);
 
     } catch (error) {
       console.error('❌ Errore:', error);
@@ -102,8 +95,6 @@ function GeneraSquadre() {
 
   const caricaSoloProfili = async () => {
     try {
-      console.log('🔄 Caricamento SOLO da profili (nessun voto)...');
-      
       const { data: profiliDB, error } = await supabase
         .from('profili_utenti')
         .select('*')
@@ -112,19 +103,31 @@ function GeneraSquadre() {
 
       if (error) throw error;
 
-      const giocatoriMappati = profiliDB.map(profilo => ({
-        id: profilo.id,
-        giocatore_id: profilo.id,
-        nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
-        voto: null,
-        partite_giocate: 0,
-        selezionato: false,
-        da_profili: true
-      }));
+      const giocatoriMappati = profiliDB.map(profilo => {
+        const ruoli = [];
+        if (profilo.portiere) ruoli.push('portiere');
+        if (profilo.difensore) ruoli.push('difensore');
+        if (profilo.centrocampista) ruoli.push('centrocampista');
+        if (profilo.attaccante) ruoli.push('attaccante');
+        
+        const ruoloPrincipale = ruoli.length > 0 ? ruoli[0] : 'centrocampista';
+
+        return {
+          id: profilo.id,
+          giocatore_id: profilo.id,
+          nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
+          voto: null,
+          partite_giocate: 0,
+          selezionato: false,
+          ruolo: ruoloPrincipale,
+          ruoliMultipli: ruoli,
+          da_profili: true
+        };
+      });
 
       setGiocatori(giocatoriMappati);
       setGiocatoriFiltrati(giocatoriMappati);
-      setErrore('⚠️ Classifica VUOTA - Solo nomi dai profili (nessun voto)');
+      setErrore('⚠️ Solo nomi dai profili (nessun voto)');
 
     } catch (error) {
       console.error('❌ Errore caricamento profili:', error);
@@ -132,7 +135,7 @@ function GeneraSquadre() {
     }
   };
 
-  // [RESTANO INVARIATE LE ALTRE FUNZIONI...]
+  // FUNZIONI SELEZIONE
   const toggleSelezioneGiocatore = (giocatoreId) => {
     setGiocatori(prev => prev.map(g => 
       g.id === giocatoreId ? { ...g, selezionato: !g.selezionato } : g
@@ -158,6 +161,7 @@ function GeneraSquadre() {
     ));
   };
 
+  // GENERA SQUADRE CON BILANCIAMENTO RUOLI
   const generaSquadre = () => {
     setLoading(true);
     
@@ -176,40 +180,121 @@ function GeneraSquadre() {
         return;
       }
 
-      let giocatoriDaDividere = [...giocatoriSelez];
+      let squadraA = [];
+      let squadraB = [];
       
-      if (bilanciaLivello && giocatoriSelez.some(g => g.voto)) {
-        giocatoriDaDividere.sort((a, b) => (b.voto || 0) - (a.voto || 0));
-        
-        const squadraA = [];
-        const squadraB = [];
-        
-        for (let i = 0; i < giocatoriDaDividere.length; i++) {
+      if (bilanciaRuoli) {
+        // 🎯 BILANCIAMENTO CON RUOLI
+        const risultato = generaSquadreBilanciate(giocatoriSelez);
+        squadraA = risultato.squadraA;
+        squadraB = risultato.squadraB;
+      } else if (bilanciaLivello) {
+        // Bilanciamento solo per livello
+        const giocatoriOrdinati = [...giocatoriSelez].sort((a, b) => (b.voto || 0) - (a.voto || 0));
+        for (let i = 0; i < giocatoriOrdinati.length; i++) {
           if (i % 2 === 0) {
-            squadraA.push(giocatoriDaDividere[i]);
+            squadraA.push(giocatoriOrdinati[i]);
           } else {
-            squadraB.push(giocatoriDaDividere[i]);
+            squadraB.push(giocatoriOrdinati[i]);
           }
         }
-        
-        setSquadreGenerate({
-          squadraA,
-          squadraB,
-          bilanciamento: calcolaBilanciamento(squadraA, squadraB)
-        });
       } else {
-        giocatoriDaDividere = giocatoriDaDividere.sort(() => Math.random() - 0.5);
-        const meta = giocatoriDaDividere.length / 2;
-        
-        setSquadreGenerate({
-          squadraA: giocatoriDaDividere.slice(0, meta),
-          squadraB: giocatoriDaDividere.slice(meta),
-          bilanciamento: calcolaBilanciamento(giocatoriDaDividere.slice(0, meta), giocatoriDaDividere.slice(meta))
-        });
+        // Divisione casuale
+        const giocatoriCasuali = [...giocatoriSelez].sort(() => Math.random() - 0.5);
+        const meta = giocatoriCasuali.length / 2;
+        squadraA = giocatoriCasuali.slice(0, meta);
+        squadraB = giocatoriCasuali.slice(meta);
       }
+      
+      setSquadreGenerate({
+        squadraA,
+        squadraB,
+        bilanciamento: calcolaBilanciamento(squadraA, squadraB),
+        distribuzioneRuoli: analizzaDistribuzioneRuoli(squadraA, squadraB)
+      });
       
       setLoading(false);
     }, 500);
+  };
+
+  // 🎯 ALGORITMO AVANZATO PER BILANCIAMENTO RUOLI
+  const generaSquadreBilanciate = (giocatoriSelez) => {
+    // Separa i giocatori per ruolo
+    const portieri = giocatoriSelez.filter(g => g.ruolo === 'portiere');
+    const difensori = giocatoriSelez.filter(g => g.ruolo === 'difensore');
+    const centrocampisti = giocatoriSelez.filter(g => g.ruolo === 'centrocampista');
+    const attaccanti = giocatoriSelez.filter(g => g.ruolo === 'attaccante');
+    
+    const squadraA = [];
+    const squadraB = [];
+    
+    // Distribuisci i portieri (massimo 1 per squadra)
+    distribuisciGiocatori(portieri, squadraA, squadraB, 1);
+    
+    // Distribuisci gli altri ruoli in modo bilanciato
+    const maxPerSquadra = (giocatoriSelez.length - (squadraA.length + squadraB.length)) / 2;
+    const difPerSquadra = Math.min(Math.ceil(difensori.length / 2), Math.floor(maxPerSquadra * 0.4));
+    const cenPerSquadra = Math.min(Math.ceil(centrocampisti.length / 2), Math.floor(maxPerSquadra * 0.4));
+    const attPerSquadra = Math.min(Math.ceil(attaccanti.length / 2), Math.floor(maxPerSquadra * 0.2));
+    
+    distribuisciGiocatori(difensori, squadraA, squadraB, difPerSquadra);
+    distribuisciGiocatori(centrocampisti, squadraA, squadraB, cenPerSquadra);
+    distribuisciGiocatori(attaccanti, squadraA, squadraB, attPerSquadra);
+    
+    // Aggiungi i giocatori rimanenti
+    const tuttiGiocatori = [...giocatoriSelez];
+    const giaAssegnati = [...squadraA, ...squadraB];
+    const rimanenti = tuttiGiocatori.filter(g => !giaAssegnati.find(ga => ga.id === g.id));
+    
+    // Distribuisci i rimanenti bilanciando i livelli
+    rimanenti.sort((a, b) => (b.voto || 0) - (a.voto || 0));
+    rimanenti.forEach((giocatore, index) => {
+      if (index % 2 === 0) {
+        squadraA.push(giocatore);
+      } else {
+        squadraB.push(giocatore);
+      }
+    });
+    
+    return { squadraA, squadraB };
+  };
+
+  const distribuisciGiocatori = (giocatori, squadraA, squadraB, maxPerSquadra) => {
+    const ordinati = [...giocatori].sort((a, b) => (b.voto || 0) - (a.voto || 0));
+    
+    for (let i = 0; i < ordinati.length; i++) {
+      if (squadraA.filter(g => g.ruolo === ordinati[i].ruolo).length < maxPerSquadra && 
+          squadraA.length < squadraB.length) {
+        squadraA.push(ordinati[i]);
+      } else if (squadraB.filter(g => g.ruolo === ordinati[i].ruolo).length < maxPerSquadra) {
+        squadraB.push(ordinati[i]);
+      } else if (squadraA.filter(g => g.ruolo === ordinati[i].ruolo).length < maxPerSquadra) {
+        squadraA.push(ordinati[i]);
+      } else {
+        // Se entrambe le squadre hanno raggiunto il massimo, assegna alla squadra con meno giocatori
+        if (squadraA.length <= squadraB.length) {
+          squadraA.push(ordinati[i]);
+        } else {
+          squadraB.push(ordinati[i]);
+        }
+      }
+    }
+  };
+
+  const analizzaDistribuzioneRuoli = (squadraA, squadraB) => {
+    const contaRuoli = (squadra) => {
+      return {
+        portiere: squadra.filter(g => g.ruolo === 'portiere').length,
+        difensore: squadra.filter(g => g.ruolo === 'difensore').length,
+        centrocampista: squadra.filter(g => g.ruolo === 'centrocampista').length,
+        attaccante: squadra.filter(g => g.ruolo === 'attaccante').length
+      };
+    };
+    
+    return {
+      squadraA: contaRuoli(squadraA),
+      squadraB: contaRuoli(squadraB)
+    };
   };
 
   const calcolaBilanciamento = (squadraA, squadraB) => {
@@ -238,16 +323,23 @@ function GeneraSquadre() {
   const copiaRisultati = () => {
     if (!squadreGenerate) return;
     
+    const ruoliA = squadreGenerate.distribuzioneRuoli.squadraA;
+    const ruoliB = squadreGenerate.distribuzioneRuoli.squadraB;
+    
     const testo = `
 🟥 SQUADRA A (${squadreGenerate.bilanciamento.totaleA} pts):
-${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
+${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome} - ${g.ruolo}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
 
 🟦 SQUADRA B (${squadreGenerate.bilanciamento.totaleB} pts):
-${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
+${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome} - ${g.ruolo}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
 
 Bilanciamento: ${squadreGenerate.bilanciamento.percentualeBilanciamento}% 
 ${squadreGenerate.bilanciamento.valutazione}
 Differenza: ${squadreGenerate.bilanciamento.differenza} punti
+
+DISTRIBUZIONE RUOLI:
+Squadra A - P:${ruoliA.portiere} D:${ruoliA.difensore} C:${ruoliA.centrocampista} A:${ruoliA.attaccante}
+Squadra B - P:${ruoliB.portiere} D:${ruoliB.difensore} C:${ruoliB.centrocampista} A:${ruoliB.attaccante}
     `.trim();
 
     navigator.clipboard.writeText(testo);
@@ -261,8 +353,8 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     return (
       <div className="genera-squadre-container">
         <div className="loading">
-          <h3>🔄 Controllo dati classifica...</h3>
-          <p>Sto verificando se ci sono voti nel database</p>
+          <h3>🔄 Caricamento giocatori...</h3>
+          <p>Sto leggendo i dati con i ruoli</p>
         </div>
       </div>
     );
@@ -272,26 +364,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>{giocatoriConVoto > 0 ? 'Basato sui VOTI REALI' : 'SOLO NOMI - Nessun voto in classifica'}</p>
-      </div>
-
-      {/* MESSAGGIO CHIARO SULLO STATO DEI DATI */}
-      <div className={`stato-dati ${giocatoriConVoto > 0 ? 'dati-reali' : 'dati-mancanti'}`}>
-        <h4>
-          {giocatoriConVoto > 0 ? '✅ DATI REALI CARICATI' : '⚠️ CLASSIFICA VUOTA'}
-        </h4>
-        <p>
-          {giocatoriConVoto > 0 
-            ? `Trovati ${giocatoriConVoto} giocatori con voti reali` 
-            : 'Inserisci i dati nella tabella "classifiche" per avere i voti'
-          }
-        </p>
-        {datiClassifica.length === 0 && (
-          <small>
-            💡 <strong>Problema risolto:</strong> La tabella "classifiche" è vuota. 
-            Inserisci i dati con i voti reali per usare il bilanciamento automatico.
-          </small>
-        )}
+        <p>Con bilanciamento livelli e ruoli</p>
       </div>
 
       {errore && (
@@ -321,6 +394,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           <button onClick={() => selezionaNumero(10)} className="btn-secondary">
             Seleziona 10
           </button>
+          <button onClick={() => selezionaNumero(16)} className="btn-secondary">
+            Seleziona 16
+          </button>
         </div>
       </div>
 
@@ -339,28 +415,39 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         )}
       </div>
 
+      {/* OPZIONI DI BILANCIAMENTO */}
       <div className="opzioni-generazione">
-        <label className="checkbox-option large">
-          <input
-            type="checkbox"
-            checked={bilanciaLivello}
-            onChange={(e) => setBilanciaLivello(e.target.checked)}
-            disabled={giocatoriConVoto === 0}
-          />
-          <span>⚖️ Bilanciamento Automatico</span>
-        </label>
+        <div className="opzioni-grid">
+          <label className="checkbox-option">
+            <input
+              type="checkbox"
+              checked={bilanciaLivello}
+              onChange={(e) => setBilanciaLivello(e.target.checked)}
+              disabled={giocatoriConVoto === 0}
+            />
+            <span>⚖️ Bilanciamento Livelli</span>
+          </label>
+          
+          <label className="checkbox-option">
+            <input
+              type="checkbox"
+              checked={bilanciaRuoli}
+              onChange={(e) => setBilanciaRuoli(e.target.checked)}
+            />
+            <span>🎯 Bilanciamento Ruoli</span>
+          </label>
+        </div>
         <small>
-          {giocatoriConVoto > 0 
-            ? 'Crea squadre equilibrate basate sui VOTI dei giocatori' 
-            : 'Disabilitato - nessun voto in classifica'
+          {bilanciaRuoli 
+            ? 'Crea squadre equilibrate con distribuzione intelligente dei ruoli' 
+            : 'Divisione casuale o solo per livello'
           }
         </small>
       </div>
 
       <div className="lista-giocatori">
         <h3>
-          {giocatoriConVoto > 0 ? 'Giocatori con Voti' : 'Giocatori (solo nomi)'}
-          ({giocatoriSelezionatiCount} selezionati)
+          Giocatori ({giocatoriSelezionatiCount} selezionati)
           {ricerca && ` - Trovati: ${giocatoriFiltrati.length}`}
         </h3>
         
@@ -379,21 +466,22 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             {giocatoriFiltrati.map(giocatore => (
               <div 
                 key={giocatore.id} 
-                className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''} ${giocatore.voto ? 'con-voto' : 'senza-voto'}`}
+                className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''} ${giocatore.voto ? 'con-voto' : 'senza-voto'} ruolo-${giocatore.ruolo}`}
                 onClick={() => toggleSelezioneGiocatore(giocatore.id)}
               >
                 <div className="giocatore-info">
                   <h4>{giocatore.nome}</h4>
                   <div className="giocatore-dettagli">
-                    {giocatore.voto ? (
-                      <>
-                        <span className="voto">⭐ Voto: {giocatore.voto}</span>
-                        {giocatore.partite_giocate > 0 && (
-                          <span className="partite">🎯 Partite: {giocatore.partite_giocate}</span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="nessun-voto">📝 Nessun voto</span>
+                    <span className={`ruolo-badge ruolo-${giocatore.ruolo}`}>
+                      {giocatore.ruolo === 'portiere' ? '🥅' : 
+                       giocatore.ruolo === 'difensore' ? '🛡️' :
+                       giocatore.ruolo === 'centrocampista' ? '⚙️' : '⚽'} {giocatore.ruolo}
+                    </span>
+                    {giocatore.voto && (
+                      <span className="voto">⭐ {giocatore.voto}</span>
+                    )}
+                    {giocatore.partite_giocate > 0 && (
+                      <span className="partite">🎯 {giocatore.partite_giocate}</span>
                     )}
                   </div>
                 </div>
@@ -422,16 +510,37 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <div className="risultati-squadre">
           <h3>🎉 Squadre Generate</h3>
           
-          {giocatoriConVoto > 0 && (
-            <div className="bilanciamento-indicator">
-              <div className="bilanciamento-score">
-                <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
-                Bilanciamento: <strong>{squadreGenerate.bilanciamento.percentualeBilanciamento}%</strong>
-              </div>
-              <div className="bilanciamento-dettaglio">
-                Squadra A: {squadreGenerate.bilanciamento.totaleA} pts | 
-                Squadra B: {squadreGenerate.bilanciamento.totaleB} pts | 
-                Differenza: {squadreGenerate.bilanciamento.differenza} pts
+          <div className="bilanciamento-indicator">
+            <div className="bilanciamento-score">
+              <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
+              Bilanciamento: <strong>{squadreGenerate.bilanciamento.percentualeBilanciamento}%</strong>
+            </div>
+            <div className="bilanciamento-dettaglio">
+              Squadra A: {squadreGenerate.bilanciamento.totaleA} pts | 
+              Squadra B: {squadreGenerate.bilanciamento.totaleB} pts | 
+              Differenza: {squadreGenerate.bilanciamento.differenza} pts
+            </div>
+          </div>
+
+          {/* DISTRIBUZIONE RUOLI */}
+          {bilanciaRuoli && (
+            <div className="distribuzione-ruoli">
+              <h4>📊 Distribuzione Ruoli:</h4>
+              <div className="ruoli-grid">
+                <div className="ruoli-squadra">
+                  <strong>🟥 Squadra A:</strong>
+                  <span>🥅 {squadreGenerate.distribuzioneRuoli.squadraA.portiere}</span>
+                  <span>🛡️ {squadreGenerate.distribuzioneRuoli.squadraA.difensore}</span>
+                  <span>⚙️ {squadreGenerate.distribuzioneRuoli.squadraA.centrocampista}</span>
+                  <span>⚽ {squadreGenerate.distribuzioneRuoli.squadraA.attaccante}</span>
+                </div>
+                <div className="ruoli-squadra">
+                  <strong>🟦 Squadra B:</strong>
+                  <span>🥅 {squadreGenerate.distribuzioneRuoli.squadraB.portiere}</span>
+                  <span>🛡️ {squadreGenerate.distribuzioneRuoli.squadraB.difensore}</span>
+                  <span>⚙️ {squadreGenerate.distribuzioneRuoli.squadraB.centrocampista}</span>
+                  <span>⚽ {squadreGenerate.distribuzioneRuoli.squadraB.attaccante}</span>
+                </div>
               </div>
             </div>
           )}
@@ -440,15 +549,18 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             <div className="squadra-card squadra-a">
               <div className="squadra-header">
                 <h4>🟥 Squadra A</h4>
-                {giocatoriConVoto > 0 && (
-                  <span className="punti-totale">{squadreGenerate.bilanciamento.totaleA} pts</span>
-                )}
+                <span className="punti-totale">{squadreGenerate.bilanciamento.totaleA} pts</span>
               </div>
               <div className="squadra-giocatori">
                 {squadreGenerate.squadraA.map((giocatore, index) => (
                   <div key={giocatore.id} className="giocatore-squadra">
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
+                    <span className={`ruolo ruolo-${giocatore.ruolo}`}>
+                      {giocatore.ruolo === 'portiere' ? '🥅' : 
+                       giocatore.ruolo === 'difensore' ? '🛡️' :
+                       giocatore.ruolo === 'centrocampista' ? '⚙️' : '⚽'}
+                    </span>
                     {giocatore.voto && (
                       <span className="voto">⭐ {giocatore.voto}</span>
                     )}
@@ -460,15 +572,18 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             <div className="squadra-card squadra-b">
               <div className="squadra-header">
                 <h4>🟦 Squadra B</h4>
-                {giocatoriConVoto > 0 && (
-                  <span className="punti-totale">{squadreGenerate.bilanciamento.totaleB} pts</span>
-                )}
+                <span className="punti-totale">{squadreGenerate.bilanciamento.totaleB} pts</span>
               </div>
               <div className="squadra-giocatori">
                 {squadreGenerate.squadraB.map((giocatore, index) => (
                   <div key={giocatore.id} className="giocatore-squadra">
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
+                    <span className={`ruolo ruolo-${giocatore.ruolo}`}>
+                      {giocatore.ruolo === 'portiere' ? '🥅' : 
+                       giocatore.ruolo === 'difensore' ? '🛡️' :
+                       giocatore.ruolo === 'centrocampista' ? '⚙️' : '⚽'}
+                    </span>
                     {giocatore.voto && (
                       <span className="voto">⭐ {giocatore.voto}</span>
                     )}
