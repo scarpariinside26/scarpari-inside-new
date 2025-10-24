@@ -100,7 +100,7 @@ function App() {
     <div className="App">
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/eventi" element={<EventiPage />} />
+        <Route path="/eventi" element={<GestioneEventi />} />
         <Route path="/classifica" element={<ClassificaPage />} />
         <Route path="/squadre" element={<SquadrePage />} />
         <Route path="/profilo" element={<HomePage />} /> {/* Temporaneo */}
