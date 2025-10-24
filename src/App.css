@@ -184,3 +184,36 @@ body {
     text-align: center;
   }
 }
+/* DESKTOP OPTIMIZATION FOR HOMEPAGE */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1200px;
+    padding: 3rem;
+  }
+  
+  .logo {
+    font-size: 5rem !important;
+  }
+  
+  .slogan {
+    font-size: 1.5rem !important;
+  }
+  
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+    gap: 2rem !important;
+  }
+  
+  .menu-btn {
+    padding: 2.5rem 1.5rem !important;
+    min-height: 180px;
+  }
+  
+  .menu-btn .icon {
+    font-size: 3rem !important;
+  }
+  
+  .menu-btn .text {
+    font-size: 1.5rem !important;
+  }
+}
