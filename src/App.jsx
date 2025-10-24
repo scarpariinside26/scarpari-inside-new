@@ -1,49 +1,10 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
+
+// Import delle pagine
 import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
-// Componenti pagina semplici per test
-function EventiPage() {
-  return (
-    <div className="page-container">
-      <header className="page-header">
-        <Link to="/" className="back-btn">← Torna alla Home</Link>
-        <h1>🗓️ Pagina Eventi</h1>
-      </header>
-      <div className="eventi-content">
-        <p>Questa è la pagina dedicata agli eventi!</p>
-        <p>Qui andrà la lista completa degli eventi.</p>
-      </div>
-    </div>
-  );
-}
-
-function ClassificaPage() {
-  return (
-    <div className="page-container">
-      <header className="page-header">
-        <Link to="/" className="back-btn">← Torna alla Home</Link>
-        <h1>📊 Classifica</h1>
-      </header>
-      <p>Qui andrà lo Scarparometro</p>
-    </div>
-  );
-}
-
-function SquadrePage() {
-  return (
-    <div className="page-container">
-      <header className="page-header">
-        <Link to="/" className="back-btn">← Torna alla Home</Link>
-        <h1>👥 Genera Squadre</h1>
-      </header>
-      <p>Qui andrà il generatore di squadre</p>
-    </div>
-  );
-}
-
-// Componente Homepage - SOLO PULSANTI
 function HomePage() {
   return (
     <div className="container">
@@ -62,30 +23,33 @@ function HomePage() {
           <Link to="/eventi" className="menu-btn">
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
+            <span className="desc">Gestione eventi e generazione squadre</span>
           </Link>
 
-          <Link to="/squadre" className="menu-btn">
+          <Link to="/eventi" className="menu-btn">
             <span className="icon">👥</span>
             <span className="text">GENERA SQUADRE</span>
+            <span className="desc">Crea squadre bilanciate per le partite</span>
           </Link>
 
-          <Link to="/classifica" className="menu-btn">
+          <Link to="/" className="menu-btn">
             <span className="icon">📊</span>
             <span className="text">SCARPAROMETRO</span>
+            <span className="desc">Classifica e statistiche giocatori</span>
           </Link>
 
-          <Link to="/profilo" className="menu-btn">
+          <Link to="/" className="menu-btn">
             <span className="icon">👤</span>
             <span className="text">IL MIO PROFILO</span>
+            <span className="desc">Profilo personale e statistiche</span>
           </Link>
 
-          <Link to="/impostazioni" className="menu-btn">
+          <Link to="/" className="menu-btn">
             <span className="icon">⚙️</span>
             <span className="text">IMPOSTAZIONI</span>
+            <span className="desc">Configurazione sistema</span>
           </Link>
         </div>
-        
-        {/* RIMOSSO: la sezione dati che vedi sotto i pulsanti */}
       </main>
 
       <footer className="footer">
@@ -101,10 +65,6 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/eventi" element={<GestioneEventi />} />
-        <Route path="/classifica" element={<ClassificaPage />} />
-        <Route path="/squadre" element={<SquadrePage />} />
-        <Route path="/profilo" element={<HomePage />} /> {/* Temporaneo */}
-        <Route path="/impostazioni" element={<HomePage />} /> {/* Temporaneo */}
       </Routes>
     </div>
   );
