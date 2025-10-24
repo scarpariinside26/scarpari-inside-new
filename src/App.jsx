@@ -2,16 +2,47 @@ import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 
-function Eventi() {
+// Componenti pagina semplici per test
+function EventiPage() {
   return (
-    <div style={{ padding: '2rem', background: '#0f1a2f', color: 'white', minHeight: '100vh' }}>
-      <h1>🗓️ PAGINA EVENTI - FUNZIONA!</h1>
-      <p>Se vedi questo, il routing funziona</p>
-      <Link to="/" style={{ color: '#a8c6ff' }}>← Torna alla Home</Link>
+    <div className="page-container">
+      <header className="page-header">
+        <Link to="/" className="back-btn">← Torna alla Home</Link>
+        <h1>🗓️ Pagina Eventi</h1>
+      </header>
+      <div className="eventi-content">
+        <p>Questa è la pagina dedicata agli eventi!</p>
+        <p>Qui andrà la lista completa degli eventi.</p>
+      </div>
     </div>
   );
 }
 
+function ClassificaPage() {
+  return (
+    <div className="page-container">
+      <header className="page-header">
+        <Link to="/" className="back-btn">← Torna alla Home</Link>
+        <h1>📊 Classifica</h1>
+      </header>
+      <p>Qui andrà lo Scarparometro</p>
+    </div>
+  );
+}
+
+function SquadrePage() {
+  return (
+    <div className="page-container">
+      <header className="page-header">
+        <Link to="/" className="back-btn">← Torna alla Home</Link>
+        <h1>👥 Genera Squadre</h1>
+      </header>
+      <p>Qui andrà il generatore di squadre</p>
+    </div>
+  );
+}
+
+// Componente Homepage - SOLO PULSANTI
 function HomePage() {
   return (
     <div className="container">
@@ -31,8 +62,29 @@ function HomePage() {
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
           </Link>
-          {/* Altri pulsanti... */}
+
+          <Link to="/squadre" className="menu-btn">
+            <span className="icon">👥</span>
+            <span className="text">GENERA SQUADRE</span>
+          </Link>
+
+          <Link to="/classifica" className="menu-btn">
+            <span className="icon">📊</span>
+            <span className="text">SCARPAROMETRO</span>
+          </Link>
+
+          <Link to="/profilo" className="menu-btn">
+            <span className="icon">👤</span>
+            <span className="text">IL MIO PROFILO</span>
+          </Link>
+
+          <Link to="/impostazioni" className="menu-btn">
+            <span className="icon">⚙️</span>
+            <span className="text">IMPOSTAZIONI</span>
+          </Link>
         </div>
+        
+        {/* RIMOSSO: la sezione dati che vedi sotto i pulsanti */}
       </main>
 
       <footer className="footer">
@@ -47,7 +99,11 @@ function App() {
     <div className="App">
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/eventi" element={<Eventi />} />
+        <Route path="/eventi" element={<EventiPage />} />
+        <Route path="/classifica" element={<ClassificaPage />} />
+        <Route path="/squadre" element={<SquadrePage />} />
+        <Route path="/profilo" element={<HomePage />} /> {/* Temporaneo */}
+        <Route path="/impostazioni" element={<HomePage />} /> {/* Temporaneo */}
       </Routes>
     </div>
   );
