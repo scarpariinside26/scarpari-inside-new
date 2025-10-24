@@ -29,3 +29,43 @@
   text-decoration: none;
   color: #fff;
 }
+/* Stili per le pagine */
+.page-container {
+  min-height: 100vh;
+  background: #0f1a2f;
+  color: white;
+  padding: 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #2d5a9a;
+}
+
+.back-btn {
+  color: #a8c6ff;
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+.back-btn:hover {
+  color: #4a7bc8;
+}
+
+.eventi-content {
+  background: rgba(30, 58, 95, 0.8);
+  border: 2px solid #2d5a9a;
+  border-radius: 12px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+/* Link come pulsanti */
+.menu-grid a {
+  text-decoration: none;
+  display: block;
+}
