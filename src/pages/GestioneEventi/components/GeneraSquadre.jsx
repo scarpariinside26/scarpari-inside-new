@@ -24,7 +24,6 @@ function GeneraSquadre() {
       
       console.log('📡 Caricamento giocatori dalla classifica...');
       
-      // Carica dalla classifica con join ai profili
       let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
@@ -40,7 +39,6 @@ function GeneraSquadre() {
         `)
         .order('punteggio_calcolato', { ascending: false });
 
-      // Se errore o classifica vuota, carica dai profili
       if (error || !giocatoriDB || giocatoriDB.length === 0) {
         console.log('🔄 Classifica vuota o errore, carico dai profili...');
         await caricaDaProfiliUtenti();
@@ -51,15 +49,21 @@ function GeneraSquadre() {
 
       // Mappa i giocatori con i dati reali
       const giocatoriMappati = giocatoriDB.map(record => {
-        // Calcola livello basato sul punteggio_calcolato (voto reale)
+        // 🎯 CORREZIONE: Scala voti 4-10 -> livello 40-100
         let livello = 50; // Default
+        
         if (record.punteggio_calcolato) {
-          // Converti il voto in livello (es: voto 7.5 -> livello 75)
-          livello = Math.round(record.punteggio_calcolato * 10);
+          // Se il voto è fuori scala 4-10, normalizza
+          let votoNormalizzato = record.punteggio_calcolato;
+          if (votoNormalizzato < 4) votoNormalizzato = 4;
+          if (votoNormalizzato > 10) votoNormalizzato = 10;
+          
+          // Converti voto 4-10 in livello 40-100
+          livello = Math.round(40 + (votoNormalizzato - 4) * 10);
         }
 
-        // Limita il livello tra 30 e 100
-        livello = Math.max(30, Math.min(100, livello));
+        // Limita il livello tra 40 e 100
+        livello = Math.max(40, Math.min(100, livello));
 
         // Ottieni il nome
         const nomeCompleto = record.profili_utenti?.nome_completo 
@@ -71,16 +75,16 @@ function GeneraSquadre() {
           giocatore_id: record.giocatore_id,
           nome: nomeCompleto,
           livello: livello,
-          voto_attuale: record.punteggio_calcolato, // Usa il voto reale come voto attuale
+          // 🎯 CORREZIONE: Mostra il voto originale ma limitato a 10 per display
+          voto_attuale: record.punteggio_calcolato > 10 ? 10 : record.punteggio_calcolato,
+          voto_originale: record.punteggio_calcolato, // Mantieni l'originale per calcoli
           selezionato: false,
-          // Dati dalla classifica
           punteggio_calcolato: record.punteggio_calcolato,
           media_voto: record.media_voto,
           partite_giocate: record.partite_giocate,
           gol_segnati: record.gol_segnati,
           assist: record.assist,
           punti_classifica: record.punti_classifica,
-          // Ruoli
           ruolo: {
             portiere: record.portiere,
             difensore: record.difensore,
@@ -123,7 +127,6 @@ function GeneraSquadre() {
         return;
       }
 
-      // Mappa i giocatori dai profili
       const giocatoriMappati = profiliDB.map(profilo => {
         const livelli = {
           'principiante': 40,
@@ -140,7 +143,7 @@ function GeneraSquadre() {
           giocatore_id: profilo.id,
           nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
           livello: livello,
-          voto_attuale: null, // Nessun voto dai profili
+          voto_attuale: null,
           selezionato: false,
           livello_scarparo: profilo.livello_scarparo,
           ruolo: {
@@ -166,6 +169,7 @@ function GeneraSquadre() {
   const apriModalVoti = () => {
     const votiIniziali = {};
     giocatori.forEach(giocatore => {
+      // 🎯 CORREZIONE: Scala 4-10 nel modal
       votiIniziali[giocatore.giocatore_id || giocatore.id] = giocatore.voto_attuale || '';
     });
     setVotiTemporanei(votiIniziali);
@@ -174,7 +178,8 @@ function GeneraSquadre() {
 
   // AGGIORNA VOTO TEMPORANEO
   const aggiornaVotoTemporaneo = (giocatoreId, voto) => {
-    if (voto === '' || (voto >= 1 && voto <= 10)) {
+    // 🎯 CORREZIONE: Permetti solo voti da 4 a 10
+    if (voto === '' || (voto >= 4 && voto <= 10)) {
       setVotiTemporanei(prev => ({
         ...prev,
         [giocatoreId]: voto === '' ? '' : Number(voto)
@@ -203,7 +208,6 @@ function GeneraSquadre() {
         return;
       }
 
-      // Inserisci i nuovi voti
       const { error } = await supabase
         .from('voti_giocatori')
         .insert(votiDaSalvare);
@@ -213,7 +217,6 @@ function GeneraSquadre() {
       console.log('✅ Voti salvati con successo!');
       alert(`✅ ${votiDaSalvare.length} voti salvati con successo!`);
       
-      // Ricarica i giocatori per aggiornare i voti
       await caricaGiocatoriConClassifica();
       setModalVoti(false);
 
@@ -225,7 +228,7 @@ function GeneraSquadre() {
     }
   };
 
-  // FUNZIONI PER SELEZIONE GIOCATORI
+  // [RESTANO INVARIATE LE ALTRE FUNZIONI...]
   const toggleSelezioneGiocatore = (giocatoreId) => {
     setGiocatori(prev => prev.map(g => 
       g.id === giocatoreId ? { ...g, selezionato: !g.selezionato } : g
@@ -251,7 +254,6 @@ function GeneraSquadre() {
     ));
   };
 
-  // GENERA SQUADRE
   const generaSquadre = () => {
     setLoading(true);
     
@@ -273,13 +275,11 @@ function GeneraSquadre() {
       let giocatoriDaDividere = [...giocatoriSelez];
       
       if (bilanciaLivello) {
-        // Bilanciamento per livello
         giocatoriDaDividere.sort((a, b) => b.livello - a.livello);
         
         const squadraA = [];
         const squadraB = [];
         
-        // Distribuzione a serpentina
         for (let i = 0; i < giocatoriDaDividere.length; i++) {
           if (i % 2 === 0) {
             squadraA.push(giocatoriDaDividere[i]);
@@ -294,7 +294,6 @@ function GeneraSquadre() {
           bilanciamento: calcolaBilanciamento(squadraA, squadraB)
         });
       } else {
-        // Divisione casuale
         giocatoriDaDividere = giocatoriDaDividere.sort(() => Math.random() - 0.5);
         const meta = giocatoriDaDividere.length / 2;
         
@@ -376,10 +375,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Basato sui giocatori reali con voti dalla classifica</p>
+        <p>Basato sui giocatori reali con voti dalla classifica (scala 4-10)</p>
       </div>
 
-      {/* MESSAGGIO ERRORE */}
       {errore && (
         <div className="error-message">
           <h4>⚠️ Informazione</h4>
@@ -387,7 +385,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         </div>
       )}
 
-      {/* CONTROLLI RAPIDI */}
       <div className="controlli-rapidi">
         <div className="stats-rapide">
           <span className="stat">Giocatori: {giocatori.length}</span>
@@ -419,7 +416,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         </div>
       </div>
 
-      {/* OPZIONI GENERAZIONE */}
       <div className="opzioni-generazione">
         <label className="checkbox-option large">
           <input
@@ -432,7 +428,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <small>Crea squadre equilibrate basate sui livelli dei giocatori</small>
       </div>
 
-      {/* LISTA GIOCATORI CON VOTI */}
       <div className="lista-giocatori">
         <h3>
           {giocatori.length > 0 && giocatori[0].da_profili 
@@ -476,7 +471,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         )}
       </div>
 
-      {/* BOTTONE GENERA */}
       {giocatori.length > 0 && (
         <div className="genera-actions">
           <button 
@@ -489,7 +483,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         </div>
       )}
 
-      {/* MODAL INSERIMENTO VOTI */}
       {modalVoti && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -504,15 +497,17 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             </div>
             
             <div className="modal-body">
-              <p>Inserisci i voti da 1 a 10 per ogni giocatore:</p>
+              {/* 🎯 CORREZIONE: Scala 4-10 nel testo */}
+              <p>Inserisci i voti da 4 a 10 per ogni giocatore:</p>
               
               <div className="voti-grid">
                 {giocatori.map(giocatore => (
                   <div key={giocatore.giocatore_id || giocatore.id} className="voto-item">
                     <label>{giocatore.nome}</label>
+                    {/* 🎯 CORREZIONE: Input limitato a 4-10 */}
                     <input
                       type="number"
-                      min="1"
+                      min="4"
                       max="10"
                       step="0.1"
                       value={votiTemporanei[giocatore.giocatore_id || giocatore.id] || ''}
@@ -520,7 +515,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                         giocatore.giocatore_id || giocatore.id, 
                         e.target.value
                       )}
-                      placeholder="Voto (1-10)"
+                      placeholder="Voto (4-10)"
                     />
                     {giocatore.voto_attuale && (
                       <span className="voto-precedente">
@@ -551,12 +546,10 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         </div>
       )}
 
-      {/* RISULTATI SQUADRE */}
       {squadreGenerate && (
         <div className="risultati-squadre">
           <h3>🎉 Squadre Generate</h3>
           
-          {/* INDICATORE BILANCIAMENTO */}
           <div className="bilanciamento-indicator">
             <div className="bilanciamento-score">
               <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
@@ -570,7 +563,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           </div>
 
           <div className="squadre-grid">
-            {/* SQUADRA A */}
             <div className="squadra-card squadra-a">
               <div className="squadra-header">
                 <h4>🟥 Squadra A</h4>
@@ -590,7 +582,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
               </div>
             </div>
 
-            {/* SQUADRA B */}
             <div className="squadra-card squadra-b">
               <div className="squadra-header">
                 <h4>🟦 Squadra B</h4>
