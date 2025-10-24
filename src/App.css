@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #0f1a2f; /* Blu scuro */
+  background: #0f1a2f;
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   min-height: 100vh;
@@ -37,9 +37,10 @@ body {
 }
 
 .logo-image {
-  max-width: 120px;
+  max-width: 150px;
   height: auto;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
 }
 
 .logo {
@@ -59,10 +60,10 @@ body {
 
 /* Messaggio */
 .message-box {
-  background: rgba(30, 58, 95, 0.8);
-  border: 1px solid #2d5a9a;
-  border-radius: 8px;
-  padding: 1rem 2rem;
+  background: rgba(30, 58, 95, 0.9);
+  border: 2px solid #2d5a9a;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   font-size: 1.1rem;
   color: #fff;
@@ -75,6 +76,13 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.active-menu {
+  font-size: 0.9rem;
+  color: #a8c6ff;
+  margin-top: 0.8rem;
+  font-style: italic;
+}
+
 /* Menu */
 .menu-grid {
   display: grid;
@@ -84,7 +92,7 @@ body {
 }
 
 .menu-btn {
-  background: rgba(30, 58, 95, 0.6);
+  background: rgba(30, 58, 95, 0.7);
   border: 2px solid #2d5a9a;
   border-radius: 12px;
   padding: 2rem 1rem;
@@ -96,13 +104,18 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  font-family: inherit;
 }
 
 .menu-btn:hover {
   transform: scale(1.05);
   border-color: #4a7bc8;
-  background: rgba(45, 90, 154, 0.8);
-  box-shadow: 0 0 30px rgba(45, 90, 154, 0.5);
+  background: rgba(45, 90, 154, 0.9);
+  box-shadow: 0 0 30px rgba(45, 90, 154, 0.6);
+}
+
+.menu-btn:active {
+  transform: scale(1.02);
 }
 
 .icon {
@@ -125,12 +138,16 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .App {
+    padding: 1rem;
+  }
+  
   .logo {
     font-size: 3rem;
   }
   
   .logo-image {
-    max-width: 80px;
+    max-width: 120px;
   }
   
   .menu-grid {
@@ -140,5 +157,10 @@ body {
   
   .menu-btn {
     padding: 1.5rem 1rem;
+  }
+  
+  .message-box {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
   }
 }
