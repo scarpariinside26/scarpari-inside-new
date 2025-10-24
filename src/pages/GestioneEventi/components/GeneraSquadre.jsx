@@ -3,59 +3,101 @@ import { supabase } from '../../../supabaseClient';
 
 function GeneraSquadre() {
   const [giocatori, setGiocatori] = useState([]);
-  const [giocatoriSelezionati, setGiocatoriSelezionati] = useState([]);
   const [squadreGenerate, setSquadreGenerate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bilanciaLivello, setBilanciaLivello] = useState(true);
+  const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
 
-  // Carica giocatori dal database
+  // Carica giocatori DAL TUO DATABASE con JOIN
   useEffect(() => {
-    caricaGiocatori();
+    caricaGiocatoriDatabase();
   }, []);
 
-  const caricaGiocatori = async () => {
+  const caricaGiocatoriDatabase = async () => {
     try {
-      // Prima carichiamo dalla tabella classifiche
-      const { data: giocatoriClassifica, error } = await supabase
+      setCaricamentoGiocatori(true);
+      
+      // QUERY CON JOIN tra classifiche e profili_utenti
+      const { data: giocatoriDB, error } = await supabase
         .from('classifiche')
-        .select('*')
-        .order('punti', { ascending: false });
+        .select(`
+          *,
+          profili_utenti:giocatore_id (
+            id,
+            nome,
+            cognome,
+            username,
+            email
+          )
+        `)
+        .order('punteggio_calcolato', { ascending: false });
 
-      if (error) throw error;
-
-      if (giocatoriClassifica && giocatoriClassifica.length > 0) {
-        // Usa i giocatori dalla classifica
-        const giocatoriMappati = giocatoriClassifica.map(g => ({
-          id: g.id,
-          nome: g.nome || g.username || `Giocatore ${g.id}`,
-          livello: g.punti || 50, // Usa i punti come livello
-          selezionato: false
-        }));
-        setGiocatori(giocatoriMappati);
-      } else {
-        // Se non ci sono giocatori in classifica, usa dati mock per test
-        const giocatoriMock = [
-          { id: 1, nome: 'Marco', livello: 80, selezionato: false },
-          { id: 2, nome: 'Luca', livello: 75, selezionato: false },
-          { id: 3, nome: 'Giovanni', livello: 90, selezionato: false },
-          { id: 4, nome: 'Andrea', livello: 70, selezionato: false },
-          { id: 5, nome: 'Matteo', livello: 85, selezionato: false },
-          { id: 6, nome: 'Francesco', livello: 65, selezionato: false },
-          { id: 7, nome: 'Alessandro', livello: 95, selezionato: false },
-          { id: 8, nome: 'Stefano', livello: 60, selezionato: false },
-        ];
-        setGiocatori(giocatoriMock);
+      if (error) {
+        console.error('Errore query:', error);
+        throw error;
       }
+
+      console.log('Dati caricati:', giocatoriDB);
+
+      if (!giocatoriDB || giocatoriDB.length === 0) {
+        console.log('Nessun giocatore nel database, uso dati esempio');
+        const giocatoriEsempio = [
+          { id: 1, nome: 'Marco Rossi', livello: 80, selezionato: false },
+          { id: 2, nome: 'Luca Bianchi', livello: 75, selezionato: false },
+          { id: 3, nome: 'Giovanni Verdi', livello: 90, selezionato: false },
+          { id: 4, nome: 'Andrea Neri', livello: 70, selezionato: false },
+        ];
+        setGiocatori(giocatoriEsempio);
+        return;
+      }
+
+      // Mappa i giocatori con i dati corretti
+      const giocatoriMappati = giocatoriDB.map(giocatore => {
+        // Calcola il livello basato sul punteggio_calcolato
+        const livelloBase = giocatore.punteggio_calcolato || giocatore.media_voto || 6.0;
+        const livello = Math.round((livelloBase - 4) * 20); // Converti 4-10 in 0-120
+        
+        // Ottieni il nome dal profilo utente
+        const nomeCompleto = giocatore.profili_utenti 
+          ? `${giocatore.profili_utenti.nome || ''} ${giocatore.profili_utenti.cognome || ''}`.trim()
+          : giocatore.profili_utenti?.username 
+          || `Giocatore ${giocatore.id}`;
+
+        return {
+          id: giocatore.id,
+          nome: nomeCompleto || `Giocatore ${giocatore.id}`,
+          livello: Math.max(40, Math.min(100, livello)), // Limita tra 40 e 100
+          selezionato: false,
+          // Dettagli aggiuntivi per debug
+          punteggio_calcolato: giocatore.punteggio_calcolato,
+          media_voto: giocatore.media_voto,
+          partite_giocate: giocatore.partite_giocate,
+          gol_segnati: giocatore.gol_segnati,
+          ruolo: {
+            portiere: giocatore.portiere,
+            difensore: giocatore.difensore,
+            centrocampista: giocatore.centrocampista,
+            attaccante: giocatore.attaccante,
+            jolly: giocatore.jolly
+          }
+        };
+      });
+
+      console.log('Giocatori mappati:', giocatoriMappati);
+      setGiocatori(giocatoriMappati);
+
     } catch (error) {
       console.error('Errore caricamento giocatori:', error);
-      // Fallback a dati mock in caso di errore
-      const giocatoriMock = [
-        { id: 1, nome: 'Marco', livello: 80, selezionato: false },
-        { id: 2, nome: 'Luca', livello: 75, selezionato: false },
-        { id: 3, nome: 'Giovanni', livello: 90, selezionato: false },
-        { id: 4, nome: 'Andrea', livello: 70, selezionato: false },
+      // Fallback a dati di esempio
+      const giocatoriEsempio = [
+        { id: 1, nome: 'Marco Rossi', livello: 80, selezionato: false },
+        { id: 2, nome: 'Luca Bianchi', livello: 75, selezionato: false },
+        { id: 3, nome: 'Giovanni Verdi', livello: 90, selezionato: false },
+        { id: 4, nome: 'Andrea Neri', livello: 70, selezionato: false },
       ];
-      setGiocatori(giocatoriMock);
+      setGiocatori(giocatoriEsempio);
+    } finally {
+      setCaricamentoGiocatori(false);
     }
   };
 
@@ -73,10 +115,20 @@ function GeneraSquadre() {
     setGiocatori(prev => prev.map(g => ({ ...g, selezionato: false })));
   };
 
+  const selezionaNumero = (numero) => {
+    const giocatoriRandom = [...giocatori]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, numero)
+      .map(g => g.id);
+    
+    setGiocatori(prev => prev.map(g => 
+      giocatoriRandom.includes(g.id) ? { ...g, selezionato: true } : { ...g, selezionato: false }
+    ));
+  };
+
   const generaSquadre = () => {
     setLoading(true);
     
-    // Simula un breve caricamento per l'effetto
     setTimeout(() => {
       const giocatoriSelez = giocatori.filter(g => g.selezionato);
       
@@ -95,24 +147,18 @@ function GeneraSquadre() {
       let giocatoriDaDividere = [...giocatoriSelez];
       
       if (bilanciaLivello) {
-        // Ordina per livello e dividi in modo bilanciato
+        // Bilanciamento per livello (punteggio_calcolato)
         giocatoriDaDividere.sort((a, b) => b.livello - a.livello);
         
         const squadraA = [];
         const squadraB = [];
         
-        // Algoritmo di bilanciamento: migliore con secondo migliore in squadre diverse
-        for (let i = 0; i < giocatoriDaDividere.length; i += 2) {
-          if (i % 4 === 0 || i % 4 === 3) {
+        // Distribuzione a serpentina
+        for (let i = 0; i < giocatoriDaDividere.length; i++) {
+          if (i % 2 === 0) {
             squadraA.push(giocatoriDaDividere[i]);
-            if (giocatoriDaDividere[i + 1]) {
-              squadraB.push(giocatoriDaDividere[i + 1]);
-            }
           } else {
             squadraB.push(giocatoriDaDividere[i]);
-            if (giocatoriDaDividere[i + 1]) {
-              squadraA.push(giocatoriDaDividere[i + 1]);
-            }
           }
         }
         
@@ -134,7 +180,7 @@ function GeneraSquadre() {
       }
       
       setLoading(false);
-    }, 1000);
+    }, 500);
   };
 
   const calcolaBilanciamento = (squadraA, squadraB) => {
@@ -143,21 +189,63 @@ function GeneraSquadre() {
     const differenza = Math.abs(totaleA - totaleB);
     const percentualeBilanciamento = 100 - (differenza / Math.max(totaleA, totaleB) * 100);
     
+    let valutazione = '🎯 Ottimo';
+    if (differenza > 20) valutazione = '⚠️ Accettabile';
+    if (differenza > 35) valutazione = '📉 Da migliorare';
+    
     return {
       totaleA,
       totaleB,
       differenza,
-      percentualeBilanciamento: Math.round(percentualeBilanciamento)
+      percentualeBilanciamento: Math.round(percentualeBilanciamento),
+      valutazione
     };
   };
 
+  const rigeneraSquadre = () => {
+    generaSquadre();
+  };
+
+  const copiaRisultati = () => {
+    if (!squadreGenerate) return;
+    
+    const testo = `
+🟥 SQUADRA A (${squadreGenerate.bilanciamento.totaleA} pts):
+${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}`).join('\n')}
+
+🟦 SQUADRA B (${squadreGenerate.bilanciamento.totaleB} pts):
+${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}`).join('\n')}
+
+Bilanciamento: ${squadreGenerate.bilanciamento.percentualeBilanciamento}% 
+${squadreGenerate.bilanciamento.valutazione}
+Differenza: ${squadreGenerate.bilanciamento.differenza} punti
+    `.trim();
+
+    navigator.clipboard.writeText(testo);
+    alert('📋 Risultati copiati negli appunti!');
+  };
+
   const giocatoriSelezionatiCount = giocatori.filter(g => g.selezionato).length;
+  const livelloMedio = giocatori.length > 0 
+    ? Math.round(giocatori.reduce((sum, g) => sum + g.livello, 0) / giocatori.length)
+    : 0;
+
+  if (caricamentoGiocatori) {
+    return (
+      <div className="genera-squadre-container">
+        <div className="loading">
+          <h3>🔄 Caricamento giocatori dal database...</h3>
+          <p>Sto leggendo la classifica con i punteggi reali</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Seleziona i giocatori e genera squadre bilanciate</p>
+        <p>Basato sui punteggi reali della classifica 2024</p>
       </div>
 
       {/* CONTROLLI RAPIDI */}
@@ -165,6 +253,7 @@ function GeneraSquadre() {
         <div className="stats-rapide">
           <span className="stat">Giocatori: {giocatori.length}</span>
           <span className="stat">Selezionati: {giocatoriSelezionatiCount}</span>
+          <span className="stat">Livello medio: {livelloMedio}</span>
         </div>
         
         <div className="azioni-rapide">
@@ -173,6 +262,12 @@ function GeneraSquadre() {
           </button>
           <button onClick={deselezionaTutti} className="btn-secondary">
             Deseleziona Tutti
+          </button>
+          <button onClick={() => selezionaNumero(8)} className="btn-secondary">
+            Seleziona 8
+          </button>
+          <button onClick={() => selezionaNumero(10)} className="btn-secondary">
+            Seleziona 10
           </button>
         </div>
       </div>
@@ -185,13 +280,14 @@ function GeneraSquadre() {
             checked={bilanciaLivello}
             onChange={(e) => setBilanciaLivello(e.target.checked)}
           />
-          <span>⚖️ Bilanciamento Automatico per Livello</span>
+          <span>⚖️ Bilanciamento per Punteggio Reale</span>
         </label>
+        <small>Usa i punteggi calcolati dalla classifica per squadre equilibrate</small>
       </div>
 
       {/* LISTA GIOCATORI */}
       <div className="lista-giocatori">
-        <h3>Seleziona Giocatori ({giocatoriSelezionatiCount} selezionati)</h3>
+        <h3>Giocatori dalla Classifica 2024 ({giocatoriSelezionatiCount} selezionati)</h3>
         
         <div className="giocatori-grid">
           {giocatori.map(giocatore => (
@@ -202,7 +298,15 @@ function GeneraSquadre() {
             >
               <div className="giocatore-info">
                 <h4>{giocatore.nome}</h4>
-                <div className="livello">Livello: {giocatore.livello}</div>
+                <div className="livello-dettagli">
+                  <span className="livello">Livello: {giocatore.livello}</span>
+                  {giocatore.punteggio_calcolato && (
+                    <span className="punteggio">Punteggio: {giocatore.punteggio_calcolato}</span>
+                  )}
+                  {giocatore.partite_giocate > 0 && (
+                    <span className="partite">Partite: {giocatore.partite_giocate}</span>
+                  )}
+                </div>
               </div>
               <div className="checkbox-visuale">
                 {giocatore.selezionato && '✓'}
@@ -219,7 +323,7 @@ function GeneraSquadre() {
           disabled={loading || giocatoriSelezionatiCount < 2}
           className="btn-primary large"
         >
-          {loading ? '🎲 Generando...' : `🎯 Genera Squadre (${giocatoriSelezionatiCount} giocatori)`}
+          {loading ? '🎲 Generando Squadre...' : `🎯 Genera Squadre (${giocatoriSelezionatiCount} giocatori)`}
         </button>
       </div>
 
@@ -231,6 +335,7 @@ function GeneraSquadre() {
           {/* INDICATORE BILANCIAMENTO */}
           <div className="bilanciamento-indicator">
             <div className="bilanciamento-score">
+              <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
               Bilanciamento: <strong>{squadreGenerate.bilanciamento.percentualeBilanciamento}%</strong>
             </div>
             <div className="bilanciamento-dettaglio">
@@ -277,8 +382,8 @@ function GeneraSquadre() {
           </div>
 
           <div className="azioni-risultati">
-            <button className="btn-secondary">🔄 Rigenera</button>
-            <button className="btn-primary">📋 Copia Risultati</button>
+            <button onClick={rigeneraSquadre} className="btn-secondary">🔄 Rigenera</button>
+            <button onClick={copiaRisultati} className="btn-primary">📋 Copia Risultati</button>
           </div>
         </div>
       )}
