@@ -3,16 +3,30 @@ import { supabase } from '../../../supabaseClient';
 
 function GeneraSquadre() {
   const [giocatori, setGiocatori] = useState([]);
+  const [giocatoriFiltrati, setGiocatoriFiltrati] = useState([]);
   const [squadreGenerate, setSquadreGenerate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bilanciaLivello, setBilanciaLivello] = useState(true);
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
   const [errore, setErrore] = useState('');
+  const [ricerca, setRicerca] = useState('');
 
   // Carica giocatori con dati REALI dalla classifica
   useEffect(() => {
     caricaGiocatoriConClassifica();
   }, []);
+
+  // Filtra giocatori quando cambia la ricerca
+  useEffect(() => {
+    if (ricerca) {
+      const filtrati = giocatori.filter(giocatore =>
+        giocatore.nome.toLowerCase().includes(ricerca.toLowerCase())
+      );
+      setGiocatoriFiltrati(filtrati);
+    } else {
+      setGiocatoriFiltrati(giocatori);
+    }
+  }, [ricerca, giocatori]);
 
   const caricaGiocatoriConClassifica = async () => {
     try {
@@ -41,7 +55,7 @@ function GeneraSquadre() {
 
       console.log('✅ Dati classifica REALI:', giocatoriDB);
 
-      // 🎯 SEMPLICE: usa SOLO i dati reali, niente conversioni
+      // 🎯 SOLO DATI REALI - NESSUNA CONVERSIONE
       const giocatoriMappati = giocatoriDB.map(record => {
         const nomeCompleto = record.profili_utenti?.nome_completo 
           || record.profili_utenti?.nickname
@@ -55,18 +69,16 @@ function GeneraSquadre() {
           voto: record.punteggio_calcolato,
           // 🎯 PARTITE REALI - quelle che hai caricato
           partite_giocate: record.partite_giocate,
-          // 🎯 Per il bilanciamento, usa direttamente il voto come livello
-          livello: record.punteggio_calcolato,
           selezionato: false,
-          // Altri dati reali
-          gol_segnati: record.gol_segnati,
-          assist: record.assist,
-          punti_classifica: record.punti_classifica,
           da_classifica: true
         };
       });
 
+      // 🎯 ORDINE ALFABETICO
+      giocatoriMappati.sort((a, b) => a.nome.localeCompare(b.nome));
+
       setGiocatori(giocatoriMappati);
+      setGiocatoriFiltrati(giocatoriMappati);
       setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori con dati REALI`);
 
     } catch (error) {
@@ -98,12 +110,12 @@ function GeneraSquadre() {
         nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
         voto: null,
         partite_giocate: 0,
-        livello: 50, // Default per profili senza classifica
         selezionato: false,
         da_profili: true
       }));
 
       setGiocatori(giocatoriMappati);
+      setGiocatoriFiltrati(giocatoriMappati);
       setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori dai profili`);
 
     } catch (error) {
@@ -161,7 +173,7 @@ function GeneraSquadre() {
       
       if (bilanciaLivello) {
         // 🎯 Bilanciamento per VOTO REALE
-        giocatoriDaDividere.sort((a, b) => b.voto - a.voto);
+        giocatoriDaDividere.sort((a, b) => (b.voto || 0) - (a.voto || 0));
         
         const squadraA = [];
         const squadraB = [];
@@ -297,6 +309,25 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         </div>
       </div>
 
+      {/* 🎯 BARRA DI RICERCA */}
+      <div className="barra-ricerca">
+        <input
+          type="text"
+          placeholder="🔍 Cerca giocatore..."
+          value={ricerca}
+          onChange={(e) => setRicerca(e.target.value)}
+          className="input-ricerca"
+        />
+        {ricerca && (
+          <button 
+            onClick={() => setRicerca('')}
+            className="pulisci-ricerca"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       <div className="opzioni-generazione">
         <label className="checkbox-option large">
           <input
@@ -312,6 +343,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
       <div className="lista-giocatori">
         <h3>
           Giocatori ({giocatoriSelezionatiCount} selezionati)
+          {ricerca && ` - Trovati: ${giocatoriFiltrati.length}`}
         </h3>
         
         {giocatori.length === 0 ? (
@@ -319,9 +351,14 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             <h4>📭 Nessun giocatore trovato</h4>
             <p>Il database non contiene giocatori</p>
           </div>
+        ) : giocatoriFiltrati.length === 0 ? (
+          <div className="empty-state">
+            <h4>🔍 Nessun giocatore trovato</h4>
+            <p>Prova con un altro nome</p>
+          </div>
         ) : (
           <div className="giocatori-grid">
-            {giocatori.map(giocatore => (
+            {giocatoriFiltrati.map(giocatore => (
               <div 
                 key={giocatore.id} 
                 className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''}`}
@@ -330,15 +367,12 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                 <div className="giocatore-info">
                   <h4>{giocatore.nome}</h4>
                   <div className="giocatore-dettagli">
-                    {/* 🎯 MOSTRA SOLO DATI REALI */}
+                    {/* 🎯 SOLO VOTO E PARTITE REALI - NIENTE GOL */}
                     {giocatore.voto && (
                       <span className="voto">⭐ Voto: {giocatore.voto}</span>
                     )}
                     {giocatore.partite_giocate > 0 && (
                       <span className="partite">🎯 Partite: {giocatore.partite_giocate}</span>
-                    )}
-                    {giocatore.gol_segnati > 0 && (
-                      <span className="gol">⚽ Gol: {giocatore.gol_segnati}</span>
                     )}
                   </div>
                 </div>
