@@ -1,15 +1,17 @@
 import React from 'react';
-import { Routes, Route, Link } from 'react-router-dom';  // Aggiungi Link
+import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 
-// Import pagine
-import Eventi from './pages/Eventi';
-import Classifica from './pages/Classifica';
-import Squadre from './pages/Squadre';
-import Profilo from './pages/Profilo';
-import Impostazioni from './pages/Impostazioni';
+function Eventi() {
+  return (
+    <div style={{ padding: '2rem', background: '#0f1a2f', color: 'white', minHeight: '100vh' }}>
+      <h1>🗓️ PAGINA EVENTI - FUNZIONA!</h1>
+      <p>Se vedi questo, il routing funziona</p>
+      <Link to="/" style={{ color: '#a8c6ff' }}>← Torna alla Home</Link>
+    </div>
+  );
+}
 
-// Componente Homepage
 function HomePage() {
   return (
     <div className="container">
@@ -25,31 +27,11 @@ function HomePage() {
 
       <main className="main">
         <div className="menu-grid">
-          {/* CAMBIA: usa Link invece di a */}
           <Link to="/eventi" className="menu-btn">
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
           </Link>
-
-          <Link to="/squadre" className="menu-btn">
-            <span className="icon">👥</span>
-            <span className="text">GENERA SQUADRE</span>
-          </Link>
-
-          <Link to="/classifica" className="menu-btn">
-            <span className="icon">📊</span>
-            <span className="text">SCARPAROMETRO</span>
-          </Link>
-
-          <Link to="/profilo" className="menu-btn">
-            <span className="icon">👤</span>
-            <span className="text">IL MIO PROFILO</span>
-          </Link>
-
-          <Link to="/impostazioni" className="menu-btn">
-            <span className="icon">⚙️</span>
-            <span className="text">IMPOSTAZIONI</span>
-          </Link>
+          {/* Altri pulsanti... */}
         </div>
       </main>
 
@@ -66,10 +48,6 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/eventi" element={<Eventi />} />
-        <Route path="/classifica" element={<Classifica />} />
-        <Route path="/squadre" element={<Squadre />} />
-        <Route path="/profilo" element={<Profilo />} />
-        <Route path="/impostazioni" element={<Impostazioni />} />
       </Routes>
     </div>
   );
