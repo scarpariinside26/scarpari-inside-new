@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';  // Aggiungi Link
 import './App.css';
 
 // Import pagine
@@ -25,30 +25,31 @@ function HomePage() {
 
       <main className="main">
         <div className="menu-grid">
-          <a href="/eventi" className="menu-btn">
+          {/* CAMBIA: usa Link invece di a */}
+          <Link to="/eventi" className="menu-btn">
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
-          </a>
+          </Link>
 
-          <a href="/squadre" className="menu-btn">
+          <Link to="/squadre" className="menu-btn">
             <span className="icon">👥</span>
             <span className="text">GENERA SQUADRE</span>
-          </a>
+          </Link>
 
-          <a href="/classifica" className="menu-btn">
+          <Link to="/classifica" className="menu-btn">
             <span className="icon">📊</span>
             <span className="text">SCARPAROMETRO</span>
-          </a>
+          </Link>
 
-          <a href="/profilo" className="menu-btn">
+          <Link to="/profilo" className="menu-btn">
             <span className="icon">👤</span>
             <span className="text">IL MIO PROFILO</span>
-          </a>
+          </Link>
 
-          <a href="/impostazioni" className="menu-btn">
+          <Link to="/impostazioni" className="menu-btn">
             <span className="icon">⚙️</span>
             <span className="text">IMPOSTAZIONI</span>
-          </a>
+          </Link>
         </div>
       </main>
 
