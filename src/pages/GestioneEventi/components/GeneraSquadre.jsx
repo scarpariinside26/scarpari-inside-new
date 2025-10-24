@@ -7,8 +7,9 @@ function GeneraSquadre() {
   const [loading, setLoading] = useState(false);
   const [bilanciaLivello, setBilanciaLivello] = useState(true);
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
+  const [errore, setErrore] = useState('');
 
-  // Carica giocatori DAL TUO DATABASE con JOIN
+  // Carica giocatori DAL TUO DATABASE con JOIN corretto
   useEffect(() => {
     caricaGiocatoriDatabase();
   }, []);
@@ -16,6 +17,9 @@ function GeneraSquadre() {
   const caricaGiocatoriDatabase = async () => {
     try {
       setCaricamentoGiocatori(true);
+      setErrore('');
+      
+      console.log('📡 Caricamento giocatori dal database...');
       
       // QUERY CON JOIN tra classifiche e profili_utenti
       const { data: giocatoriDB, error } = await supabase
@@ -24,80 +28,140 @@ function GeneraSquadre() {
           *,
           profili_utenti:giocatore_id (
             id,
-            nome,
-            cognome,
-            username,
-            email
+            nome_completo,
+            nickname,
+            livello_scarparo,
+            portiere,
+            difensore,
+            centrocampista,
+            attaccante
           )
         `)
         .order('punteggio_calcolato', { ascending: false });
 
       if (error) {
-        console.error('Errore query:', error);
+        console.error('❌ Errore query:', error);
+        setErrore(`Errore database: ${error.message}`);
         throw error;
       }
 
-      console.log('Dati caricati:', giocatoriDB);
+      console.log('✅ Dati caricati:', giocatoriDB);
 
       if (!giocatoriDB || giocatoriDB.length === 0) {
-        console.log('Nessun giocatore nel database, uso dati esempio');
-        const giocatoriEsempio = [
-          { id: 1, nome: 'Marco Rossi', livello: 80, selezionato: false },
-          { id: 2, nome: 'Luca Bianchi', livello: 75, selezionato: false },
-          { id: 3, nome: 'Giovanni Verdi', livello: 90, selezionato: false },
-          { id: 4, nome: 'Andrea Neri', livello: 70, selezionato: false },
-        ];
-        setGiocatori(giocatoriEsempio);
+        console.log('⚠️ Nessun giocatore nella classifica');
+        setErrore('Nessun giocatore trovato nella classifica. La tabella "classifiche" potrebbe essere vuota.');
+        
+        // Prova a caricare direttamente dai profili utenti
+        await caricaDaProfiliUtenti();
         return;
       }
 
       // Mappa i giocatori con i dati corretti
       const giocatoriMappati = giocatoriDB.map(giocatore => {
-        // Calcola il livello basato sul punteggio_calcolato
-        const livelloBase = giocatore.punteggio_calcolato || giocatore.media_voto || 6.0;
-        const livello = Math.round((livelloBase - 4) * 20); // Converti 4-10 in 0-120
+        // Calcola il livello basato sul punteggio_calcolato o livello_scarparo
+        let livello = 50; // Default
         
+        if (giocatore.punteggio_calcolato) {
+          livello = Math.round((giocatore.punteggio_calcolato - 4) * 20);
+        } else if (giocatore.profili_utenti?.livello_scarparo) {
+          // Mappa livello_scarparo a numero
+          const livelli = {
+            'principiante': 40,
+            'intermedio': 65,
+            'avanzato': 85
+          };
+          livello = livelli[giocatore.profili_utenti.livello_scarparo] || 50;
+        }
+
         // Ottieni il nome dal profilo utente
-        const nomeCompleto = giocatore.profili_utenti 
-          ? `${giocatore.profili_utenti.nome || ''} ${giocatore.profili_utenti.cognome || ''}`.trim()
-          : giocatore.profili_utenti?.username 
+        const nomeCompleto = giocatore.profili_utenti?.nome_completo 
+          || giocatore.profili_utenti?.nickname
           || `Giocatore ${giocatore.id}`;
 
         return {
           id: giocatore.id,
-          nome: nomeCompleto || `Giocatore ${giocatore.id}`,
-          livello: Math.max(40, Math.min(100, livello)), // Limita tra 40 e 100
+          nome: nomeCompleto,
+          livello: Math.max(30, Math.min(100, livello)), // Limita tra 30 e 100
           selezionato: false,
-          // Dettagli aggiuntivi per debug
+          // Dettagli aggiuntivi
           punteggio_calcolato: giocatore.punteggio_calcolato,
           media_voto: giocatore.media_voto,
           partite_giocate: giocatore.partite_giocate,
           gol_segnati: giocatore.gol_segnati,
+          livello_scarparo: giocatore.profili_utenti?.livello_scarparo,
           ruolo: {
-            portiere: giocatore.portiere,
-            difensore: giocatore.difensore,
-            centrocampista: giocatore.centrocampista,
-            attaccante: giocatore.attaccante,
-            jolly: giocatore.jolly
+            portiere: giocatore.portiere || giocatore.profili_utenti?.portiere,
+            difensore: giocatore.difensore || giocatore.profili_utenti?.difensore,
+            centrocampista: giocatore.centrocampista || giocatore.profili_utenti?.centrocampista,
+            attaccante: giocatore.attaccante || giocatore.profili_utenti?.attaccante
           }
         };
       });
 
-      console.log('Giocatori mappati:', giocatoriMappati);
+      console.log('🎯 Giocatori mappati:', giocatoriMappati);
       setGiocatori(giocatoriMappati);
 
     } catch (error) {
-      console.error('Errore caricamento giocatori:', error);
-      // Fallback a dati di esempio
-      const giocatoriEsempio = [
-        { id: 1, nome: 'Marco Rossi', livello: 80, selezionato: false },
-        { id: 2, nome: 'Luca Bianchi', livello: 75, selezionato: false },
-        { id: 3, nome: 'Giovanni Verdi', livello: 90, selezionato: false },
-        { id: 4, nome: 'Andrea Neri', livello: 70, selezionato: false },
-      ];
-      setGiocatori(giocatoriEsempio);
+      console.error('❌ Errore caricamento giocatori:', error);
+      setErrore(`Errore: ${error.message}`);
     } finally {
       setCaricamentoGiocatori(false);
+    }
+  };
+
+  // Fallback: carica direttamente dai profili utenti se classifica è vuota
+  const caricaDaProfiliUtenti = async () => {
+    try {
+      console.log('🔄 Tentativo caricamento da profili_utenti...');
+      
+      const { data: profiliDB, error } = await supabase
+        .from('profili_utenti')
+        .select('*')
+        .eq('tipo_profilo', 'giocatore')
+        .order('nome_completo', { ascending: true });
+
+      if (error) throw error;
+
+      if (!profiliDB || profiliDB.length === 0) {
+        setErrore('Nessun giocatore trovato nel database');
+        return;
+      }
+
+      console.log('✅ Profili utenti caricati:', profiliDB);
+
+      const giocatoriMappati = profiliDB.map(profilo => {
+        // Mappa livello_scarparo a numero
+        const livelli = {
+          'principiante': 40,
+          'intermedio': 65,
+          'avanzato': 85,
+          'decentrato': 50
+        };
+        
+        const livello = livelli[profilo.livello_scarparo] || 50;
+
+        return {
+          id: profilo.id,
+          nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
+          livello: livello,
+          selezionato: false,
+          livello_scarparo: profilo.livello_scarparo,
+          ruolo: {
+            portiere: profilo.portiere,
+            difensore: profilo.difensore,
+            centrocampista: profilo.centrocampista,
+            attaccante: profilo.attaccante
+          },
+          da_profili: true // Flag per identificare che viene dai profili
+        };
+      });
+
+      setGiocatori(giocatoriMappati);
+      setErrore(`Caricati ${giocatoriMappati.length} giocatori dai profili (classifica vuota)`);
+
+    } catch (error) {
+      console.error('❌ Errore caricamento profili:', error);
+      setErrore(`Errore caricamento profili: ${error.message}`);
     }
   };
 
@@ -147,7 +211,7 @@ function GeneraSquadre() {
       let giocatoriDaDividere = [...giocatoriSelez];
       
       if (bilanciaLivello) {
-        // Bilanciamento per livello (punteggio_calcolato)
+        // Bilanciamento per livello
         giocatoriDaDividere.sort((a, b) => b.livello - a.livello);
         
         const squadraA = [];
@@ -235,7 +299,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
       <div className="genera-squadre-container">
         <div className="loading">
           <h3>🔄 Caricamento giocatori dal database...</h3>
-          <p>Sto leggendo la classifica con i punteggi reali</p>
+          <p>Sto leggendo la classifica e i profili utenti</p>
         </div>
       </div>
     );
@@ -245,8 +309,20 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Basato sui punteggi reali della classifica 2024</p>
+        <p>Basato sui giocatori reali del database</p>
       </div>
+
+      {/* MESSAGGIO ERRORE */}
+      {errore && (
+        <div className="error-message">
+          <h4>⚠️ Informazione</h4>
+          <p>{errore}</p>
+          <small>
+            {errore.includes('classifica vuota') && 
+              'Sto usando i dati dai profili utenti. Per dati più precisi, popola la tabella "classifiche".'}
+          </small>
+        </div>
+      )}
 
       {/* CONTROLLI RAPIDI */}
       <div className="controlli-rapidi">
@@ -280,52 +356,67 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             checked={bilanciaLivello}
             onChange={(e) => setBilanciaLivello(e.target.checked)}
           />
-          <span>⚖️ Bilanciamento per Punteggio Reale</span>
+          <span>⚖️ Bilanciamento Automatico</span>
         </label>
-        <small>Usa i punteggi calcolati dalla classifica per squadre equilibrate</small>
+        <small>Crea squadre equilibrate basate sui livelli dei giocatori</small>
       </div>
 
       {/* LISTA GIOCATORI */}
       <div className="lista-giocatori">
-        <h3>Giocatori dalla Classifica 2024 ({giocatoriSelezionatiCount} selezionati)</h3>
+        <h3>
+          {giocatori.length > 0 && giocatori[0].da_profili 
+            ? 'Giocatori dai Profili Utenti' 
+            : 'Giocatori dalla Classifica'
+          } 
+          ({giocatoriSelezionatiCount} selezionati)
+        </h3>
         
-        <div className="giocatori-grid">
-          {giocatori.map(giocatore => (
-            <div 
-              key={giocatore.id} 
-              className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''}`}
-              onClick={() => toggleSelezioneGiocatore(giocatore.id)}
-            >
-              <div className="giocatore-info">
-                <h4>{giocatore.nome}</h4>
-                <div className="livello-dettagli">
-                  <span className="livello">Livello: {giocatore.livello}</span>
-                  {giocatore.punteggio_calcolato && (
-                    <span className="punteggio">Punteggio: {giocatore.punteggio_calcolato}</span>
-                  )}
-                  {giocatore.partite_giocate > 0 && (
-                    <span className="partite">Partite: {giocatore.partite_giocate}</span>
-                  )}
+        {giocatori.length === 0 ? (
+          <div className="empty-state">
+            <h4>📭 Nessun giocatore trovato</h4>
+            <p>Il database non contiene giocatori o la classifica è vuota</p>
+          </div>
+        ) : (
+          <div className="giocatori-grid">
+            {giocatori.map(giocatore => (
+              <div 
+                key={giocatore.id} 
+                className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''}`}
+                onClick={() => toggleSelezioneGiocatore(giocatore.id)}
+              >
+                <div className="giocatore-info">
+                  <h4>{giocatore.nome}</h4>
+                  <div className="livello-dettagli">
+                    <span className="livello">Livello: {giocatore.livello}</span>
+                    {giocatore.livello_scarparo && (
+                      <span className="livello-scarparo">({giocatore.livello_scarparo})</span>
+                    )}
+                    {giocatore.punteggio_calcolato && (
+                      <span className="punteggio">Punteggio: {giocatore.punteggio_calcolato}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="checkbox-visuale">
+                  {giocatore.selezionato && '✓'}
                 </div>
               </div>
-              <div className="checkbox-visuale">
-                {giocatore.selezionato && '✓'}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* BOTTONE GENERA */}
-      <div className="genera-actions">
-        <button 
-          onClick={generaSquadre}
-          disabled={loading || giocatoriSelezionatiCount < 2}
-          className="btn-primary large"
-        >
-          {loading ? '🎲 Generando Squadre...' : `🎯 Genera Squadre (${giocatoriSelezionatiCount} giocatori)`}
-        </button>
-      </div>
+      {giocatori.length > 0 && (
+        <div className="genera-actions">
+          <button 
+            onClick={generaSquadre}
+            disabled={loading || giocatoriSelezionatiCount < 2}
+            className="btn-primary large"
+          >
+            {loading ? '🎲 Generando Squadre...' : `🎯 Genera Squadre (${giocatoriSelezionatiCount} giocatori)`}
+          </button>
+        </div>
+      )}
 
       {/* RISULTATI SQUADRE */}
       {squadreGenerate && (
