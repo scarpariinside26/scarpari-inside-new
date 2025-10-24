@@ -1,44 +1,163 @@
 import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
 import './App.css';
 
 function App() {
   const [message, setMessage] = useState('');
   const [activeMenu, setActiveMenu] = useState('');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleEventi = () => {
-    setMessage('🎯 EVENTI - Prossimi match in caricamento...');
+  const handleEventi = async () => {
+    setLoading(true);
+    setMessage('🎯 Caricamento eventi...');
     setActiveMenu('eventi');
-    console.log('Eventi clicked');
+    
+    try {
+      const { data: eventi, error } = await supabase
+        .from('eventi')
+        .select('*')
+        .order('data', { ascending: false });
+      
+      if (error) throw error;
+      
+      setData(eventi);
+      setMessage(`🎯 Trovati ${eventi.length} eventi`);
+    } catch (error) {
+      setMessage('❌ Errore nel caricamento eventi');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleGeneraSquadre = () => {
-    setMessage('👥 GENERA SQUADRE - Mescolando i giocatori...');
+  const handleGeneraSquadre = async () => {
+    setLoading(true);
+    setMessage('👥 Generazione squadre...');
     setActiveMenu('squadre');
-    console.log('Genera Squadre clicked');
+    
+    try {
+      // Prima prendi tutti i giocatori
+      const { data: giocatori, error } = await supabase
+        .from('giocatori')
+        .select('*');
+      
+      if (error) throw error;
+
+      // Mescola i giocatori
+      const giocatoriMescolati = [...giocatori].sort(() => Math.random() - 0.5);
+      
+      // Dividi in due squadre
+      const meta = Math.ceil(giocatoriMescolati.length / 2);
+      const squadraA = giocatoriMescolati.slice(0, meta);
+      const squadraB = giocatoriMescolati.slice(meta);
+      
+      setData({ squadraA, squadraB });
+      setMessage('👥 Squadre generate con successo!');
+    } catch (error) {
+      setMessage('❌ Errore nella generazione squadre');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleScarparometro = () => {
-    setMessage('📊 SCARPAROMETRO - Calcolando le statistiche...');
+  const handleScarparometro = async () => {
+    setLoading(true);
+    setMessage('📊 Caricamento classifica...');
     setActiveMenu('scarparometro');
-    console.log('Scarparometro clicked');
+    
+    try {
+      const { data: giocatori, error } = await supabase
+        .from('giocatori')
+        .select('*')
+        .order('punti', { ascending: false });
+      
+      if (error) throw error;
+      
+      setData(giocatori);
+      setMessage(`📊 Classifica di ${giocatori.length} giocatori`);
+    } catch (error) {
+      setMessage('❌ Errore nel caricamento classifica');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProfilo = () => {
     setMessage('👤 IL MIO PROFILO - Caricamento dati...');
     setActiveMenu('profilo');
-    console.log('Profilo clicked');
+    // Da implementare
   };
 
   const handleImpostazioni = () => {
     setMessage('⚙️ IMPOSTAZIONI - Configurazione...');
     setActiveMenu('impostazioni');
-    console.log('Impostazioni clicked');
+    // Da implementare
+  };
+
+  // Componente per visualizzare i dati
+  const renderData = () => {
+    if (!data) return null;
+    
+    if (activeMenu === 'eventi' && Array.isArray(data)) {
+      return (
+        <div className="data-container">
+          <h3>Ultimi Eventi</h3>
+          {data.map(evento => (
+            <div key={evento.id} className="data-item">
+              <strong>{evento.nome}</strong> - {new Date(evento.data).toLocaleDateString('it-IT')}
+              {evento.descrizione && <div className="descrizione">{evento.descrizione}</div>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    if (activeMenu === 'scarparometro' && Array.isArray(data)) {
+      return (
+        <div className="data-container">
+          <h3>Classifica Giocatori</h3>
+          {data.map((giocatore, index) => (
+            <div key={giocatore.id} className="data-item">
+              <span className="posizione">#{index + 1}</span>
+              <span className="nome">{giocatore.nome}</span>
+              <span className="punti">{giocatore.punti} punti</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    if (activeMenu === 'squadre' && data.squadraA) {
+      return (
+        <div className="data-container">
+          <h3>Squadre Generate</h3>
+          <div className="squadre-grid">
+            <div className="squadra">
+              <h4>🟥 Squadra A</h4>
+              {data.squadraA.map(g => (
+                <div key={g.id} className="giocatore">{g.nome}</div>
+              ))}
+            </div>
+            <div className="squadra">
+              <h4>🟦 Squadra B</h4>
+              {data.squadraB.map(g => (
+                <div key={g.id} className="giocatore">{g.nome}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   return (
     <div className="App">
       <div className="container">
-        {/* Header con Logo */}
         <header className="header">
           <img 
             src="/Scarpari Inside simplelogo_2023.png" 
@@ -50,44 +169,45 @@ function App() {
         </header>
 
         {/* Messaggio di stato */}
-        {message && (
+        {(message || loading) && (
           <div className="message-box">
-            {message}
-            {activeMenu && <div className="active-menu">Menu attivo: {activeMenu}</div>}
+            {loading ? '⏳ Caricamento...' : message}
           </div>
         )}
 
         {/* Menu Principale */}
         <main className="main">
           <div className="menu-grid">
-            <button className="menu-btn" onClick={handleEventi}>
+            <button className="menu-btn" onClick={handleEventi} disabled={loading}>
               <span className="icon">🗓️</span>
               <span className="text">EVENTI</span>
             </button>
 
-            <button className="menu-btn" onClick={handleGeneraSquadre}>
+            <button className="menu-btn" onClick={handleGeneraSquadre} disabled={loading}>
               <span className="icon">👥</span>
               <span className="text">GENERA SQUADRE</span>
             </button>
 
-            <button className="menu-btn" onClick={handleScarparometro}>
+            <button className="menu-btn" onClick={handleScarparometro} disabled={loading}>
               <span className="icon">📊</span>
               <span className="text">SCARPAROMETRO</span>
             </button>
 
-            <button className="menu-btn" onClick={handleProfilo}>
+            <button className="menu-btn" onClick={handleProfilo} disabled={loading}>
               <span className="icon">👤</span>
               <span className="text">IL MIO PROFILO</span>
             </button>
 
-            <button className="menu-btn" onClick={handleImpostazioni}>
+            <button className="menu-btn" onClick={handleImpostazioni} disabled={loading}>
               <span className="icon">⚙️</span>
               <span className="text">IMPOSTAZIONI</span>
             </button>
           </div>
+
+          {/* Visualizzazione Dati */}
+          {renderData()}
         </main>
 
-        {/* Footer */}
         <footer className="footer">
           <p>- proudly made with rabbia in Veneto -</p>
         </footer>
