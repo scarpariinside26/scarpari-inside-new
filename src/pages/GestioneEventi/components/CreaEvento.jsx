@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../../supabaseClient'; // PERCORSO CORRETTO
 
 function CreaEvento({ onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
     tipo_evento: 'sportivo',
-    nome_evento: '', // CAMBIATO: titolo → nome_evento
+    nome_evento: '',
     descrizione: '',
-    data_ora: '', // CAMBIATO: data_ora_evento → data_ora
+    data_ora: '',
     data_ora_ritrovo: '',
     durata_minuti: 90,
     luogo: '',
@@ -41,19 +41,16 @@ function CreaEvento({ onSuccess, onCancel }) {
     setError('');
 
     try {
-      // Validazione con nomi corretti
       if (!formData.nome_evento || !formData.data_ora || !formData.luogo) {
         throw new Error('Compila i campi obbligatori: nome evento, data e luogo');
       }
 
-      // Prepara dati con nomi colonne CORRETTI
       const eventoData = {
-        nome_evento: formData.nome_evento, // COLONNA ESISTENTE
-        data_ora: new Date(formData.data_ora).toISOString(), // COLONNA ESISTENTE
+        nome_evento: formData.nome_evento,
+        data_ora: new Date(formData.data_ora).toISOString(),
         luogo: formData.luogo,
         indirizzo_gmaps: formData.indirizzo_gmaps,
         max_partecipanti: formData.max_partecipanti,
-        // Colonne esistenti che hai già
         allow_chat: formData.allow_chat,
         allow_file_upload: formData.allow_file_upload,
         allow_sondaggi: formData.allow_sondaggi,
@@ -64,7 +61,6 @@ function CreaEvento({ onSuccess, onCancel }) {
         tipo_ricorrenza: formData.tipo_ricorrenza,
         fine_ricorrenza: formData.fine_ricorrenza ? new Date(formData.fine_ricorrenza).toISOString() : null,
         durata_minuti: formData.durata_minuti,
-        // Campi base
         creato_da: (await supabase.auth.getUser()).data.user?.id,
         stato: 'attivo'
       };
@@ -104,7 +100,7 @@ function CreaEvento({ onSuccess, onCancel }) {
           <label>Nome Evento *</label>
           <input
             type="text"
-            name="nome_evento" // CAMBIATO
+            name="nome_evento"
             value={formData.nome_evento}
             onChange={handleChange}
             placeholder="Es: Partita calcetto amichevole"
@@ -127,7 +123,7 @@ function CreaEvento({ onSuccess, onCancel }) {
           <label>Data e Ora Evento *</label>
           <input
             type="datetime-local"
-            name="data_ora" // CAMBIATO
+            name="data_ora"
             value={formData.data_ora}
             onChange={handleChange}
             required
@@ -170,7 +166,6 @@ function CreaEvento({ onSuccess, onCancel }) {
           />
         </div>
 
-        {/* SEZIONE OPZIONI AVANZATE */}
         <div className="advanced-options">
           <div className="option-group">
             <h4>🎯 Funzionalità Avanzate</h4>
