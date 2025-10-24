@@ -14,18 +14,20 @@ function App() {
     setActiveMenu('eventi');
     
     try {
+      // RIMOSSO .order('data') perché la colonna non esiste
       const { data: eventi, error } = await supabase
         .from('eventi')
-        .select('*')
-        .order('data', { ascending: false });
+        .select('*');
+      
+      console.log('Eventi risultato:', eventi); // DEBUG
       
       if (error) throw error;
       
       setData(eventi);
-      setMessage(`🎯 Trovati ${eventi.length} eventi`);
+      setMessage(`🎯 Trovati ${eventi?.length || 0} eventi`);
     } catch (error) {
-      setMessage('❌ Errore nel caricamento eventi');
-      console.error('Error:', error);
+      setMessage(`❌ Errore eventi: ${error.message}`);
+      console.error('Error eventi:', error);
     } finally {
       setLoading(false);
     }
@@ -42,7 +44,14 @@ function App() {
         .from('classifiche')
         .select('*');
       
+      console.log('Giocatori per squadre:', giocatori); // DEBUG
+      
       if (error) throw error;
+
+      if (!giocatori || giocatori.length === 0) {
+        setMessage('❌ Nessun giocatore trovato nella classifica');
+        return;
+      }
 
       // Mescola i giocatori
       const giocatoriMescolati = [...giocatori].sort(() => Math.random() - 0.5);
@@ -53,10 +62,10 @@ function App() {
       const squadraB = giocatoriMescolati.slice(meta);
       
       setData({ squadraA, squadraB });
-      setMessage('👥 Squadre generate con successo!');
+      setMessage(`👥 Squadre generate: ${squadraA.length} vs ${squadraB.length} giocatori`);
     } catch (error) {
-      setMessage('❌ Errore nella generazione squadre');
-      console.error('Error:', error);
+      setMessage(`❌ Errore generazione squadre: ${error.message}`);
+      console.error('Error squadre:', error);
     } finally {
       setLoading(false);
     }
@@ -68,18 +77,20 @@ function App() {
     setActiveMenu('scarparometro');
     
     try {
+      // RIMOSSO .order('punti') perché la colonna non esiste
       const { data: giocatori, error } = await supabase
         .from('classifiche')
-        .select('*')
-        .order('punti', { ascending: false });
+        .select('*');
+      
+      console.log('Classifiche risultato:', giocatori); // DEBUG
       
       if (error) throw error;
       
       setData(giocatori);
-      setMessage(`📊 Classifica di ${giocatori.length} giocatori`);
+      setMessage(`📊 Classifica di ${giocatori?.length || 0} giocatori`);
     } catch (error) {
-      setMessage('❌ Errore nel caricamento classifica');
-      console.error('Error:', error);
+      setMessage(`❌ Errore classifica: ${error.message}`);
+      console.error('Error classifica:', error);
     } finally {
       setLoading(false);
     }
@@ -91,18 +102,21 @@ function App() {
     setActiveMenu('profilo');
     
     try {
+      // TABELLA CORRETTA: profili_utenti (non profil_utenti)
       const { data: profilo, error } = await supabase
-        .from('profil_utenti')
+        .from('profili_utenti')
         .select('*')
         .limit(1);
+      
+      console.log('Profilo risultato:', profilo); // DEBUG
       
       if (error) throw error;
       
       setData(profilo);
       setMessage('👤 Profilo caricato');
     } catch (error) {
-      setMessage('❌ Errore nel caricamento profilo');
-      console.error('Error:', error);
+      setMessage(`❌ Errore profilo: ${error.message}`);
+      console.error('Error profilo:', error);
     } finally {
       setLoading(false);
     }
@@ -118,13 +132,15 @@ function App() {
         .from('parametri_sistema')
         .select('*');
       
+      console.log('Impostazioni risultato:', impostazioni); // DEBUG
+      
       if (error) throw error;
       
       setData(impostazioni);
       setMessage('⚙️ Impostazioni caricate');
     } catch (error) {
-      setMessage('❌ Errore nel caricamento impostazioni');
-      console.error('Error:', error);
+      setMessage(`❌ Errore impostazioni: ${error.message}`);
+      console.error('Error impostazioni:', error);
     } finally {
       setLoading(false);
     }
@@ -137,11 +153,10 @@ function App() {
     if (activeMenu === 'eventi' && Array.isArray(data)) {
       return (
         <div className="data-container">
-          <h3>Ultimi Eventi</h3>
-          {data.map(evento => (
-            <div key={evento.id} className="data-item">
-              <strong>{evento.nome}</strong> - {new Date(evento.data).toLocaleDateString('it-IT')}
-              {evento.descrizione && <div className="descrizione">{evento.descrizione}</div>}
+          <h3>Eventi</h3>
+          {data.map((evento, index) => (
+            <div key={evento.id || index} className="data-item">
+              <pre>{JSON.stringify(evento, null, 2)}</pre>
             </div>
           ))}
         </div>
@@ -153,10 +168,12 @@ function App() {
         <div className="data-container">
           <h3>Classifica Giocatori</h3>
           {data.map((giocatore, index) => (
-            <div key={giocatore.id} className="data-item">
+            <div key={giocatore.id || index} className="data-item">
               <span className="posizione">#{index + 1}</span>
-              <span className="nome">{giocatore.nome}</span>
-              <span className="punti">{giocatore.punti || 0} punti</span>
+              <span className="nome">{giocatore.nome || giocatore.username || 'N/A'}</span>
+              {/* Mostra qualsiasi campo punti/score se esiste */}
+              {giocatore.punti && <span className="punti">{giocatore.punti} punti</span>}
+              {giocatore.score && <span className="punti">{giocatore.score} punti</span>}
             </div>
           ))}
         </div>
@@ -170,14 +187,18 @@ function App() {
           <div className="squadre-grid">
             <div className="squadra">
               <h4>🟥 Squadra A</h4>
-              {data.squadraA.map(g => (
-                <div key={g.id} className="giocatore">{g.nome}</div>
+              {data.squadraA.map((g, index) => (
+                <div key={g.id || index} className="giocatore">
+                  {g.nome || g.username || `Giocatore ${index + 1}`}
+                </div>
               ))}
             </div>
             <div className="squadra">
               <h4>🟦 Squadra B</h4>
-              {data.squadraB.map(g => (
-                <div key={g.id} className="giocatore">{g.nome}</div>
+              {data.squadraB.map((g, index) => (
+                <div key={g.id || index} className="giocatore">
+                  {g.nome || g.username || `Giocatore ${index + 1}`}
+                </div>
               ))}
             </div>
           </div>
@@ -189,8 +210,8 @@ function App() {
       return (
         <div className="data-container">
           <h3>Il Mio Profilo</h3>
-          {data.map(profilo => (
-            <div key={profilo.id} className="data-item">
+          {data.map((profilo, index) => (
+            <div key={profilo.id || index} className="data-item">
               <pre>{JSON.stringify(profilo, null, 2)}</pre>
             </div>
           ))}
@@ -202,9 +223,9 @@ function App() {
       return (
         <div className="data-container">
           <h3>Impostazioni Sistema</h3>
-          {data.map(parametro => (
-            <div key={parametro.id} className="data-item">
-              <strong>{parametro.nome_parametro}:</strong> {parametro.valore}
+          {data.map((parametro, index) => (
+            <div key={parametro.id || index} className="data-item">
+              <pre>{JSON.stringify(parametro, null, 2)}</pre>
             </div>
           ))}
         </div>
