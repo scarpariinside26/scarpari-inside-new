@@ -1,94 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Urbanist:wght@400;600;800&display=swap');
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background: #0f1a2f;
-  color: #fff;
-  font-family: 'Urbanist', sans-serif;
-  min-height: 100vh;
-}
-
-.App {
-  min-height: 100vh;
-  background: 
-    radial-gradient(circle at 10% 20%, #1e3a5f 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, #0a1a33 0%, transparent 40%),
-    #0f1a2f;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.container {
-  max-width: 1000px;
-  width: 100%;
-  text-align: center;
-}
-
-/* Header */
-.header {
-  margin-bottom: 4rem;
-}
-
-.logo-image {
-  max-width: 150px;
-  height: auto;
-  margin-bottom: 1.5rem;
-  border-radius: 8px;
-}
-
-.logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 4.5rem;
-  letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 2px 2px 0px #1e3a5f, 4px 4px 0px #0a1a33;
-  margin-bottom: 0.5rem;
-}
-
-.slogan {
-  font-size: 1.2rem;
-  color: #a8c6ff;
-  letter-spacing: 2px;
-}
-
-/* Messaggio */
-.message-box {
-  background: rgba(30, 58, 95, 0.9);
-  border: 2px solid #2d5a9a;
-  border-radius: 12px;
-  padding: 1.5rem 2rem;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-  color: #fff;
-  backdrop-filter: blur(10px);
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.active-menu {
-  font-size: 0.9rem;
-  color: #a8c6ff;
-  margin-top: 0.8rem;
-  font-style: italic;
-}
-
-/* Menu */
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
+/* Stili per i link come pulsanti */
+.menu-grid a {
+  text-decoration: none;
+  display: block;
 }
 
 .menu-btn {
@@ -105,6 +18,7 @@ body {
   align-items: center;
   gap: 1rem;
   font-family: inherit;
+  text-decoration: none;
 }
 
 .menu-btn:hover {
@@ -112,55 +26,6 @@ body {
   border-color: #4a7bc8;
   background: rgba(45, 90, 154, 0.9);
   box-shadow: 0 0 30px rgba(45, 90, 154, 0.6);
-}
-
-.menu-btn:active {
-  transform: scale(1.02);
-}
-
-.icon {
-  font-size: 2.5rem;
-}
-
-.text {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.5rem;
-  letter-spacing: 2px;
-}
-
-/* Footer */
-.footer {
-  border-top: 1px solid #1e3a5f;
-  padding-top: 2rem;
-  color: #a8c6ff;
-  font-style: italic;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .App {
-    padding: 1rem;
-  }
-  
-  .logo {
-    font-size: 3rem;
-  }
-  
-  .logo-image {
-    max-width: 120px;
-  }
-  
-  .menu-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .menu-btn {
-    padding: 1.5rem 1rem;
-  }
-  
-  .message-box {
-    padding: 1rem 1.5rem;
-    font-size: 1rem;
-  }
+  text-decoration: none;
+  color: #fff;
 }
