@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
+import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
 // Componenti pagina semplici per test
 function EventiPage() {
