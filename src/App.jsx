@@ -37,9 +37,9 @@ function App() {
     setActiveMenu('squadre');
     
     try {
-      // Prima prendi tutti i giocatori
+      // Prendi i giocatori dalla tabella classifiche
       const { data: giocatori, error } = await supabase
-        .from('giocatori')
+        .from('classifiche')
         .select('*');
       
       if (error) throw error;
@@ -69,7 +69,7 @@ function App() {
     
     try {
       const { data: giocatori, error } = await supabase
-        .from('giocatori')
+        .from('classifiche')
         .select('*')
         .order('punti', { ascending: false });
       
@@ -85,16 +85,49 @@ function App() {
     }
   };
 
-  const handleProfilo = () => {
-    setMessage('👤 IL MIO PROFILO - Caricamento dati...');
+  const handleProfilo = async () => {
+    setLoading(true);
+    setMessage('👤 Caricamento profilo...');
     setActiveMenu('profilo');
-    // Da implementare
+    
+    try {
+      const { data: profilo, error } = await supabase
+        .from('profil_utenti')
+        .select('*')
+        .limit(1);
+      
+      if (error) throw error;
+      
+      setData(profilo);
+      setMessage('👤 Profilo caricato');
+    } catch (error) {
+      setMessage('❌ Errore nel caricamento profilo');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleImpostazioni = () => {
-    setMessage('⚙️ IMPOSTAZIONI - Configurazione...');
+  const handleImpostazioni = async () => {
+    setLoading(true);
+    setMessage('⚙️ Caricamento impostazioni...');
     setActiveMenu('impostazioni');
-    // Da implementare
+    
+    try {
+      const { data: impostazioni, error } = await supabase
+        .from('parametri_sistema')
+        .select('*');
+      
+      if (error) throw error;
+      
+      setData(impostazioni);
+      setMessage('⚙️ Impostazioni caricate');
+    } catch (error) {
+      setMessage('❌ Errore nel caricamento impostazioni');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Componente per visualizzare i dati
@@ -123,7 +156,7 @@ function App() {
             <div key={giocatore.id} className="data-item">
               <span className="posizione">#{index + 1}</span>
               <span className="nome">{giocatore.nome}</span>
-              <span className="punti">{giocatore.punti} punti</span>
+              <span className="punti">{giocatore.punti || 0} punti</span>
             </div>
           ))}
         </div>
@@ -148,6 +181,32 @@ function App() {
               ))}
             </div>
           </div>
+        </div>
+      );
+    }
+
+    if (activeMenu === 'profilo' && Array.isArray(data)) {
+      return (
+        <div className="data-container">
+          <h3>Il Mio Profilo</h3>
+          {data.map(profilo => (
+            <div key={profilo.id} className="data-item">
+              <pre>{JSON.stringify(profilo, null, 2)}</pre>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeMenu === 'impostazioni' && Array.isArray(data)) {
+      return (
+        <div className="data-container">
+          <h3>Impostazioni Sistema</h3>
+          {data.map(parametro => (
+            <div key={parametro.id} className="data-item">
+              <strong>{parametro.nome_parametro}:</strong> {parametro.valore}
+            </div>
+          ))}
         </div>
       );
     }
