@@ -9,7 +9,7 @@ function GeneraSquadre() {
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
   const [errore, setErrore] = useState('');
 
-  // Carica giocatori DAL TUO DATABASE con JOIN corretto
+  // Carica giocatori DAL TUO DATABASE con gestione errori RLS
   useEffect(() => {
     caricaGiocatoriDatabase();
   }, []);
@@ -21,8 +21,8 @@ function GeneraSquadre() {
       
       console.log('📡 Caricamento giocatori dal database...');
       
-      // QUERY CON JOIN tra classifiche e profili_utenti
-      const { data: giocatoriDB, error } = await supabase
+      // PRIMA prova con JOIN
+      let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
           *,
@@ -38,6 +38,13 @@ function GeneraSquadre() {
           )
         `)
         .order('punteggio_calcolato', { ascending: false });
+
+      // Se errore di ricorsione RLS, usa approccio alternativo
+      if (error && (error.message.includes('recursion') || error.message.includes('policy'))) {
+        console.log('🔄 Errore RLS rilevato, uso approccio alternativo...');
+        await caricaConApproccioAlternativo();
+        return;
+      }
 
       if (error) {
         console.error('❌ Errore query:', error);
@@ -106,6 +113,96 @@ function GeneraSquadre() {
       setErrore(`Errore: ${error.message}`);
     } finally {
       setCaricamentoGiocatori(false);
+    }
+  };
+
+  // APPROCCIO ALTERNATIVO per evitare problemi RLS
+  const caricaConApproccioAlternativo = async () => {
+    try {
+      console.log('🔄 Caricamento con approccio alternativo...');
+      
+      // Carica classifiche e profili SEPARATAMENTE
+      const { data: classifica, error: errorClassifica } = await supabase
+        .from('classifiche')
+        .select('*')
+        .order('punteggio_calcolato', { ascending: false });
+
+      if (errorClassifica) throw errorClassifica;
+
+      if (!classifica || classifica.length === 0) {
+        await caricaDaProfiliUtenti();
+        return;
+      }
+
+      // Carica ID unici dei giocatori
+      const giocatoreIds = [...new Set(classifica.map(c => c.giocatore_id))];
+      
+      // Carica profili separatamente
+      const { data: profili, error: errorProfili } = await supabase
+        .from('profili_utenti')
+        .select('*')
+        .in('id', giocatoreIds);
+
+      if (errorProfili) {
+        console.warn('⚠️ Errore caricamento profili, continuo senza...', errorProfili);
+        // Continua senza dati profili
+      }
+
+      console.log('📊 Classifica:', classifica);
+      console.log('👤 Profili:', profili);
+
+      // Combina manualmente i dati
+      const giocatoriCombinati = classifica.map(record => {
+        const profilo = profili?.find(p => p.id === record.giocatore_id);
+        
+        // Calcola livello
+        let livello = 50;
+        if (record.punteggio_calcolato) {
+          livello = Math.round((record.punteggio_calcolato - 4) * 20);
+        } else if (profilo?.livello_scarparo) {
+          const livelli = {
+            'principiante': 40,
+            'intermedio': 65,
+            'avanzato': 85
+          };
+          livello = livelli[profilo.livello_scarparo] || 50;
+        }
+
+        // Nome
+        const nomeCompleto = profilo?.nome_completo 
+          || profilo?.nickname
+          || `Giocatore ${record.giocatore_id}`;
+
+        return {
+          id: record.id,
+          nome: nomeCompleto,
+          livello: Math.max(30, Math.min(100, livello)),
+          selezionato: false,
+          punteggio_calcolato: record.punteggio_calcolato,
+          media_voto: record.media_voto,
+          partite_giocate: record.partite_giocate,
+          gol_segnati: record.gol_segnati,
+          livello_scarparo: profilo?.livello_scarparo,
+          ruolo: {
+            portiere: profilo?.portiere,
+            difensore: profilo?.difensore,
+            centrocampista: profilo?.centrocampista,
+            attaccante: profilo?.attaccante
+          },
+          da_profili: false,
+          approccio_alternativo: true // Flag per identificare questo approccio
+        };
+      });
+
+      console.log('✅ Giocatori combinati:', giocatoriCombinati);
+      setGiocatori(giocatoriCombinati);
+      setErrore(`Caricati ${giocatoriCombinati.length} giocatori (modalità alternativa)`);
+
+    } catch (error) {
+      console.error('❌ Errore approccio alternativo:', error);
+      setErrore(`Errore caricamento: ${error.message}`);
+      // Fallback finale
+      await caricaDaProfiliUtenti();
     }
   };
 
@@ -318,8 +415,8 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           <h4>⚠️ Informazione</h4>
           <p>{errore}</p>
           <small>
-            {errore.includes('classifica vuota') && 
-              'Sto usando i dati dai profili utenti. Per dati più precisi, popola la tabella "classifiche".'}
+            {errore.includes('modalità alternativa') && 
+              'Sto usando un approccio alternativo per evitare problemi di sicurezza del database.'}
           </small>
         </div>
       )}
@@ -366,6 +463,8 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <h3>
           {giocatori.length > 0 && giocatori[0].da_profili 
             ? 'Giocatori dai Profili Utenti' 
+            : giocatori.length > 0 && giocatori[0].approccio_alternativo
+            ? 'Giocatori (Modalità Alternativa)'
             : 'Giocatori dalla Classifica'
           } 
           ({giocatoriSelezionatiCount} selezionati)
