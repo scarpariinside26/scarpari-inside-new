@@ -1,39 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import './Eventi.css';
-
-// Import componenti
-import CreaEvento from './components/CreaEvento';
-import ListaEventi from './components/ListaEventi';
-import DettaglioEvento from './components/DettaglioEvento';
 
 function Eventi() {
   const [eventi, setEventi] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('lista'); // 'lista', 'dettaglio', 'crea'
-  const [eventoSelezionato, setEventoSelezionato] = useState(null);
-  const { eventoId } = useParams(); // Per URL diretti /eventi/:id
+  const [view, setView] = useState('lista'); // 'lista' o 'crea'
 
   useEffect(() => {
     caricaEventi();
-    
-    // Se c'è un ID nell'URL, carica direttamente quel evento
-    if (eventoId) {
-      caricaEventoDettaglio(eventoId);
-    }
-  }, [eventoId]);
+  }, []);
 
   const caricaEventi = async () => {
     try {
       const { data, error } = await supabase
         .from('eventi')
-        .select(`
-          *,
-          organizzatore:nome,
-          iscrizioni_eventi(stato),
-          file_eventi(count)
-        `)
+        .select('*')
         .order('data_ora_evento', { ascending: true });
       
       if (error) throw error;
@@ -45,98 +28,65 @@ function Eventi() {
     }
   };
 
-  const caricaEventoDettaglio = async (id) => {
-    try {
-      const { data, error } = await supabase
-        .from('eventi')
-        .select(`
-          *,
-          organizzatore:nome,
-          iscrizioni_eventi(*),
-          file_eventi(*),
-          sondaggi_eventi(*),
-          chat_evento(*),
-          squadre_eventi(*)
-        `)
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      setEventoSelezionato(data);
-      setView('dettaglio');
-    } catch (error) {
-      console.error('Errore caricamento dettaglio:', error);
-    }
-  };
-
-  const handleCreaEvento = () => {
-    setView('crea');
-    setEventoSelezionato(null);
-  };
-
-  const handleTornaLista = () => {
-    setView('lista');
-    setEventoSelezionato(null);
-    caricaEventi(); // Ricarica lista
-  };
-
-  const handleEventoCliccato = (evento) => {
-    setEventoSelezionato(evento);
-    setView('dettaglio');
-  };
+  // Componente temporaneo per creare eventi
+  const CreaEvento = () => (
+    <div className="crea-evento-semplice">
+      <h2>Crea Nuovo Evento</h2>
+      <p>Form avanzato per creare eventi sportivi e community</p>
+      <button onClick={() => setView('lista')} className="btn-secondary">
+        ← Torna alla Lista
+      </button>
+    </div>
+  );
 
   if (loading) {
-    return (
-      <div className="eventi-container">
-        <div className="loading">Caricamento eventi...</div>
-      </div>
-    );
+    return <div className="loading">Caricamento eventi...</div>;
   }
 
   return (
     <div className="eventi-container">
-      {/* HEADER */}
       <header className="eventi-header">
         <Link to="/" className="back-btn">← Torna alla Home</Link>
-        
-        <div className="header-actions">
-          <h1>🗓️ Gestione Eventi</h1>
-          {view === 'lista' && (
-            <button className="btn-primary" onClick={handleCreaEvento}>
-              + Crea Nuovo Evento
-            </button>
-          )}
-          {view !== 'lista' && (
-            <button className="btn-secondary" onClick={handleTornaLista}>
-              ← Torna alla Lista
-            </button>
-          )}
-        </div>
+        <h1>🗓️ Gestione Eventi</h1>
+        {view === 'lista' && (
+          <button 
+            className="btn-primary" 
+            onClick={() => setView('crea')}
+          >
+            + Crea Evento
+          </button>
+        )}
       </header>
 
-      {/* CONTENUTO PRINCIPALE */}
       <main className="eventi-main">
         {view === 'lista' && (
-          <ListaEventi 
-            eventi={eventi}
-            onEventoCliccato={handleEventoCliccato}
-          />
+          <div className="lista-eventi">
+            <h2>Lista Eventi</h2>
+            {eventi.length === 0 ? (
+              <div className="nessun-evento">
+                <p>Nessun evento trovato</p>
+                <button 
+                  className="btn-primary"
+                  onClick={() => setView('crea')}
+                >
+                  Crea il primo evento
+                </button>
+              </div>
+            ) : (
+              <div className="eventi-grid">
+                {eventi.map(evento => (
+                  <div key={evento.id} className="evento-card">
+                    <h3>{evento.titolo || evento.home_evento}</h3>
+                    <p>📅 {new Date(evento.data_ora_evento).toLocaleDateString()}</p>
+                    <p>📍 {evento.luogo}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
-        {view === 'crea' && (
-          <CreaEvento 
-            onSuccess={handleTornaLista}
-            onCancel={handleTornaLista}
-          />
-        )}
-
-        {view === 'dettaglio' && eventoSelezionato && (
-          <DettaglioEvento 
-            evento={eventoSelezionato}
-            onBack={handleTornaLista}
-            onUpdate={caricaEventi}
-          />
-        )}
+        {view === 'crea' && <CreaEvento />}
       </main>
     </div>
   );
