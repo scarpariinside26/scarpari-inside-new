@@ -3,30 +3,36 @@ import './App.css';
 
 function App() {
   const [message, setMessage] = useState('');
+  const [activeMenu, setActiveMenu] = useState('');
 
   const handleEventi = () => {
     setMessage('🎯 EVENTI - Prossimi match in caricamento...');
-    // Qui collegherai la funzione eventi
+    setActiveMenu('eventi');
+    console.log('Eventi clicked');
   };
 
   const handleGeneraSquadre = () => {
     setMessage('👥 GENERA SQUADRE - Mescolando i giocatori...');
-    // Qui collegherai il team generator
+    setActiveMenu('squadre');
+    console.log('Genera Squadre clicked');
   };
 
   const handleScarparometro = () => {
     setMessage('📊 SCARPAROMETRO - Calcolando le statistiche...');
-    // Qui collegherai la classifica
+    setActiveMenu('scarparometro');
+    console.log('Scarparometro clicked');
   };
 
   const handleProfilo = () => {
     setMessage('👤 IL MIO PROFILO - Caricamento dati...');
-    // Qui collegherai il profilo utente
+    setActiveMenu('profilo');
+    console.log('Profilo clicked');
   };
 
   const handleImpostazioni = () => {
     setMessage('⚙️ IMPOSTAZIONI - Configurazione...');
-    // Qui collegherai le settings
+    setActiveMenu('impostazioni');
+    console.log('Impostazioni clicked');
   };
 
   return (
@@ -34,7 +40,11 @@ function App() {
       <div className="container">
         {/* Header con Logo */}
         <header className="header">
-          <img src="/logo.png" alt="Scarpari Inside" className="logo-image" />
+          <img 
+            src="/Scarpari Inside simplelogo_2023.png" 
+            alt="Scarpari Inside" 
+            className="logo-image"
+          />
           <h1 className="logo">SCARPARI INSIDE</h1>
           <p className="slogan">Il tempio del calcetto</p>
         </header>
@@ -43,6 +53,7 @@ function App() {
         {message && (
           <div className="message-box">
             {message}
+            {activeMenu && <div className="active-menu">Menu attivo: {activeMenu}</div>}
           </div>
         )}
 
