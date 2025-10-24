@@ -10,13 +10,12 @@ function GeneraSquadre() {
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
   const [errore, setErrore] = useState('');
   const [ricerca, setRicerca] = useState('');
+  const [datiClassifica, setDatiClassifica] = useState([]);
 
-  // Carica giocatori con dati REALI dalla classifica
   useEffect(() => {
     caricaGiocatoriConClassifica();
   }, []);
 
-  // Filtra giocatori quando cambia la ricerca
   useEffect(() => {
     if (ricerca) {
       const filtrati = giocatori.filter(giocatore =>
@@ -33,8 +32,27 @@ function GeneraSquadre() {
       setCaricamentoGiocatori(true);
       setErrore('');
       
-      console.log('📡 Caricamento giocatori dalla classifica...');
+      console.log('🔍 Controllo dati classifica...');
       
+      // PRIMA controlla se ci sono dati nella classifica
+      let { data: classificaData, error: classificaError } = await supabase
+        .from('classifiche')
+        .select('*')
+        .limit(5);
+
+      if (classificaError) throw classificaError;
+
+      console.log('📊 Dati classifica trovati:', classificaData);
+      setDatiClassifica(classificaData);
+
+      // Se la classifica è VUOTA, carica solo dai profili
+      if (!classificaData || classificaData.length === 0) {
+        console.log('❌ CLASSIFICA VUOTA - carico solo profili');
+        await caricaSoloProfili();
+        return;
+      }
+
+      // Se ci sono dati nella classifica, carica con join
       let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
@@ -47,15 +65,10 @@ function GeneraSquadre() {
         `)
         .order('punteggio_calcolato', { ascending: false });
 
-      if (error || !giocatoriDB || giocatoriDB.length === 0) {
-        console.log('🔄 Classifica vuota, carico dai profili...');
-        await caricaDaProfiliUtenti();
-        return;
-      }
+      if (error) throw error;
 
-      console.log('✅ Dati classifica REALI:', giocatoriDB);
+      console.log('✅ Dati caricati con successo:', giocatoriDB);
 
-      // 🎯 SOLO DATI REALI - NESSUNA CONVERSIONE
       const giocatoriMappati = giocatoriDB.map(record => {
         const nomeCompleto = record.profili_utenti?.nome_completo 
           || record.profili_utenti?.nickname
@@ -65,32 +78,32 @@ function GeneraSquadre() {
           id: record.id,
           giocatore_id: record.giocatore_id,
           nome: nomeCompleto,
-          // 🎯 VOTO REALE - quello che hai caricato
           voto: record.punteggio_calcolato,
-          // 🎯 PARTITE REALI - quelle che hai caricato
           partite_giocate: record.partite_giocate,
           selezionato: false,
           da_classifica: true
         };
       });
 
-      // 🎯 ORDINE ALFABETICO
       giocatoriMappati.sort((a, b) => a.nome.localeCompare(b.nome));
 
       setGiocatori(giocatoriMappati);
       setGiocatoriFiltrati(giocatoriMappati);
-      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori con dati REALI`);
+      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori con VOTI REALI dalla classifica`);
 
     } catch (error) {
-      console.error('❌ Errore caricamento classifica:', error);
-      setErrore(`Errore caricamento: ${error.message}`);
+      console.error('❌ Errore:', error);
+      setErrore(`Errore: ${error.message}`);
+      await caricaSoloProfili();
     } finally {
       setCaricamentoGiocatori(false);
     }
   };
 
-  const caricaDaProfiliUtenti = async () => {
+  const caricaSoloProfili = async () => {
     try {
+      console.log('🔄 Caricamento SOLO da profili (nessun voto)...');
+      
       const { data: profiliDB, error } = await supabase
         .from('profili_utenti')
         .select('*')
@@ -98,11 +111,6 @@ function GeneraSquadre() {
         .order('nome_completo', { ascending: true });
 
       if (error) throw error;
-
-      if (!profiliDB || profiliDB.length === 0) {
-        setErrore('Nessun giocatore trovato nel database');
-        return;
-      }
 
       const giocatoriMappati = profiliDB.map(profilo => ({
         id: profilo.id,
@@ -116,15 +124,15 @@ function GeneraSquadre() {
 
       setGiocatori(giocatoriMappati);
       setGiocatoriFiltrati(giocatoriMappati);
-      setErrore(`✅ Caricati ${giocatoriMappati.length} giocatori dai profili`);
+      setErrore('⚠️ Classifica VUOTA - Solo nomi dai profili (nessun voto)');
 
     } catch (error) {
       console.error('❌ Errore caricamento profili:', error);
-      setErrore(`Errore caricamento profili: ${error.message}`);
+      setErrore('Errore caricamento profili');
     }
   };
 
-  // FUNZIONI SELEZIONE
+  // [RESTANO INVARIATE LE ALTRE FUNZIONI...]
   const toggleSelezioneGiocatore = (giocatoreId) => {
     setGiocatori(prev => prev.map(g => 
       g.id === giocatoreId ? { ...g, selezionato: !g.selezionato } : g
@@ -150,7 +158,6 @@ function GeneraSquadre() {
     ));
   };
 
-  // GENERA SQUADRE
   const generaSquadre = () => {
     setLoading(true);
     
@@ -171,8 +178,7 @@ function GeneraSquadre() {
 
       let giocatoriDaDividere = [...giocatoriSelez];
       
-      if (bilanciaLivello) {
-        // 🎯 Bilanciamento per VOTO REALE
+      if (bilanciaLivello && giocatoriSelez.some(g => g.voto)) {
         giocatoriDaDividere.sort((a, b) => (b.voto || 0) - (a.voto || 0));
         
         const squadraA = [];
@@ -192,7 +198,6 @@ function GeneraSquadre() {
           bilanciamento: calcolaBilanciamento(squadraA, squadraB)
         });
       } else {
-        // Divisione casuale
         giocatoriDaDividere = giocatoriDaDividere.sort(() => Math.random() - 0.5);
         const meta = giocatoriDaDividere.length / 2;
         
@@ -208,11 +213,10 @@ function GeneraSquadre() {
   };
 
   const calcolaBilanciamento = (squadraA, squadraB) => {
-    // 🎯 Calcola basandoti sui VOTI REALI
     const totaleA = squadraA.reduce((sum, g) => sum + (g.voto || 0), 0);
     const totaleB = squadraB.reduce((sum, g) => sum + (g.voto || 0), 0);
     const differenza = Math.abs(totaleA - totaleB);
-    const percentualeBilanciamento = 100 - (differenza / Math.max(totaleA, totaleB) * 100);
+    const percentualeBilanciamento = totaleA + totaleB > 0 ? 100 - (differenza / Math.max(totaleA, totaleB) * 100) : 0;
     
     let valutazione = '🎯 Ottimo';
     if (differenza > 2) valutazione = '⚠️ Accettabile';
@@ -236,10 +240,10 @@ function GeneraSquadre() {
     
     const testo = `
 🟥 SQUADRA A (${squadreGenerate.bilanciamento.totaleA} pts):
-${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome} - Voto: ${g.voto || 'N/D'}`).join('\n')}
+${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
 
 🟦 SQUADRA B (${squadreGenerate.bilanciamento.totaleB} pts):
-${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome} - Voto: ${g.voto || 'N/D'}`).join('\n')}
+${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome}${g.voto ? ` - Voto: ${g.voto}` : ''}`).join('\n')}
 
 Bilanciamento: ${squadreGenerate.bilanciamento.percentualeBilanciamento}% 
 ${squadreGenerate.bilanciamento.valutazione}
@@ -250,19 +254,15 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     alert('📋 Risultati copiati negli appunti!');
   };
 
-  // STATISTICHE SEMPLIFICATE
   const giocatoriSelezionatiCount = giocatori.filter(g => g.selezionato).length;
   const giocatoriConVoto = giocatori.filter(g => g.voto !== null).length;
-  const votoMedio = giocatori.length > 0 
-    ? (giocatori.reduce((sum, g) => sum + (g.voto || 0), 0) / giocatori.filter(g => g.voto).length).toFixed(2)
-    : 0;
 
   if (caricamentoGiocatori) {
     return (
       <div className="genera-squadre-container">
         <div className="loading">
-          <h3>🔄 Caricamento giocatori...</h3>
-          <p>Sto leggendo i dati REALI dalla classifica</p>
+          <h3>🔄 Controllo dati classifica...</h3>
+          <p>Sto verificando se ci sono voti nel database</p>
         </div>
       </div>
     );
@@ -272,7 +272,26 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Basato sui VOTI REALI dei giocatori</p>
+        <p>{giocatoriConVoto > 0 ? 'Basato sui VOTI REALI' : 'SOLO NOMI - Nessun voto in classifica'}</p>
+      </div>
+
+      {/* MESSAGGIO CHIARO SULLO STATO DEI DATI */}
+      <div className={`stato-dati ${giocatoriConVoto > 0 ? 'dati-reali' : 'dati-mancanti'}`}>
+        <h4>
+          {giocatoriConVoto > 0 ? '✅ DATI REALI CARICATI' : '⚠️ CLASSIFICA VUOTA'}
+        </h4>
+        <p>
+          {giocatoriConVoto > 0 
+            ? `Trovati ${giocatoriConVoto} giocatori con voti reali` 
+            : 'Inserisci i dati nella tabella "classifiche" per avere i voti'
+          }
+        </p>
+        {datiClassifica.length === 0 && (
+          <small>
+            💡 <strong>Problema risolto:</strong> La tabella "classifiche" è vuota. 
+            Inserisci i dati con i voti reali per usare il bilanciamento automatico.
+          </small>
+        )}
       </div>
 
       {errore && (
@@ -287,7 +306,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           <span className="stat">Giocatori: {giocatori.length}</span>
           <span className="stat">Selezionati: {giocatoriSelezionatiCount}</span>
           <span className="stat">Con voto: {giocatoriConVoto}</span>
-          {votoMedio > 0 && <span className="stat">Voto medio: {votoMedio}</span>}
         </div>
         
         <div className="azioni-rapide">
@@ -303,13 +321,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           <button onClick={() => selezionaNumero(10)} className="btn-secondary">
             Seleziona 10
           </button>
-          <button onClick={() => selezionaNumero(16)} className="btn-secondary">
-            Seleziona 16
-          </button>
         </div>
       </div>
 
-      {/* 🎯 BARRA DI RICERCA */}
       <div className="barra-ricerca">
         <input
           type="text"
@@ -319,10 +333,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           className="input-ricerca"
         />
         {ricerca && (
-          <button 
-            onClick={() => setRicerca('')}
-            className="pulisci-ricerca"
-          >
+          <button onClick={() => setRicerca('')} className="pulisci-ricerca">
             ✕
           </button>
         )}
@@ -334,15 +345,22 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             type="checkbox"
             checked={bilanciaLivello}
             onChange={(e) => setBilanciaLivello(e.target.checked)}
+            disabled={giocatoriConVoto === 0}
           />
           <span>⚖️ Bilanciamento Automatico</span>
         </label>
-        <small>Crea squadre equilibrate basate sui VOTI dei giocatori</small>
+        <small>
+          {giocatoriConVoto > 0 
+            ? 'Crea squadre equilibrate basate sui VOTI dei giocatori' 
+            : 'Disabilitato - nessun voto in classifica'
+          }
+        </small>
       </div>
 
       <div className="lista-giocatori">
         <h3>
-          Giocatori ({giocatoriSelezionatiCount} selezionati)
+          {giocatoriConVoto > 0 ? 'Giocatori con Voti' : 'Giocatori (solo nomi)'}
+          ({giocatoriSelezionatiCount} selezionati)
           {ricerca && ` - Trovati: ${giocatoriFiltrati.length}`}
         </h3>
         
@@ -361,18 +379,21 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             {giocatoriFiltrati.map(giocatore => (
               <div 
                 key={giocatore.id} 
-                className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''}`}
+                className={`giocatore-card ${giocatore.selezionato ? 'selezionato' : ''} ${giocatore.voto ? 'con-voto' : 'senza-voto'}`}
                 onClick={() => toggleSelezioneGiocatore(giocatore.id)}
               >
                 <div className="giocatore-info">
                   <h4>{giocatore.nome}</h4>
                   <div className="giocatore-dettagli">
-                    {/* 🎯 SOLO VOTO E PARTITE REALI - NIENTE GOL */}
-                    {giocatore.voto && (
-                      <span className="voto">⭐ Voto: {giocatore.voto}</span>
-                    )}
-                    {giocatore.partite_giocate > 0 && (
-                      <span className="partite">🎯 Partite: {giocatore.partite_giocate}</span>
+                    {giocatore.voto ? (
+                      <>
+                        <span className="voto">⭐ Voto: {giocatore.voto}</span>
+                        {giocatore.partite_giocate > 0 && (
+                          <span className="partite">🎯 Partite: {giocatore.partite_giocate}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="nessun-voto">📝 Nessun voto</span>
                     )}
                   </div>
                 </div>
@@ -401,30 +422,36 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <div className="risultati-squadre">
           <h3>🎉 Squadre Generate</h3>
           
-          <div className="bilanciamento-indicator">
-            <div className="bilanciamento-score">
-              <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
-              Bilanciamento: <strong>{squadreGenerate.bilanciamento.percentualeBilanciamento}%</strong>
+          {giocatoriConVoto > 0 && (
+            <div className="bilanciamento-indicator">
+              <div className="bilanciamento-score">
+                <strong>{squadreGenerate.bilanciamento.valutazione}</strong> - 
+                Bilanciamento: <strong>{squadreGenerate.bilanciamento.percentualeBilanciamento}%</strong>
+              </div>
+              <div className="bilanciamento-dettaglio">
+                Squadra A: {squadreGenerate.bilanciamento.totaleA} pts | 
+                Squadra B: {squadreGenerate.bilanciamento.totaleB} pts | 
+                Differenza: {squadreGenerate.bilanciamento.differenza} pts
+              </div>
             </div>
-            <div className="bilanciamento-dettaglio">
-              Squadra A: {squadreGenerate.bilanciamento.totaleA} pts | 
-              Squadra B: {squadreGenerate.bilanciamento.totaleB} pts | 
-              Differenza: {squadreGenerate.bilanciamento.differenza} pts
-            </div>
-          </div>
+          )}
 
           <div className="squadre-grid">
             <div className="squadra-card squadra-a">
               <div className="squadra-header">
                 <h4>🟥 Squadra A</h4>
-                <span className="punti-totale">{squadreGenerate.bilanciamento.totaleA} pts</span>
+                {giocatoriConVoto > 0 && (
+                  <span className="punti-totale">{squadreGenerate.bilanciamento.totaleA} pts</span>
+                )}
               </div>
               <div className="squadra-giocatori">
                 {squadreGenerate.squadraA.map((giocatore, index) => (
                   <div key={giocatore.id} className="giocatore-squadra">
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
-                    <span className="voto">⭐ {giocatore.voto || 'N/D'}</span>
+                    {giocatore.voto && (
+                      <span className="voto">⭐ {giocatore.voto}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -433,14 +460,18 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             <div className="squadra-card squadra-b">
               <div className="squadra-header">
                 <h4>🟦 Squadra B</h4>
-                <span className="punti-totale">{squadreGenerate.bilanciamento.totaleB} pts</span>
+                {giocatoriConVoto > 0 && (
+                  <span className="punti-totale">{squadreGenerate.bilanciamento.totaleB} pts</span>
+                )}
               </div>
               <div className="squadra-giocatori">
                 {squadreGenerate.squadraB.map((giocatore, index) => (
                   <div key={giocatore.id} className="giocatore-squadra">
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
-                    <span className="voto">⭐ {giocatore.voto || 'N/D'}</span>
+                    {giocatore.voto && (
+                      <span className="voto">⭐ {giocatore.voto}</span>
+                    )}
                   </div>
                 ))}
               </div>
