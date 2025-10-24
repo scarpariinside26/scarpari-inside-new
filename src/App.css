@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #000;
+  background: #0f1a2f; /* Blu scuro */
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   min-height: 100vh;
@@ -16,9 +16,9 @@ body {
 .App {
   min-height: 100vh;
   background: 
-    radial-gradient(circle at 10% 20%, #ff0000 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, #8B0000 0%, transparent 40%),
-    #000;
+    radial-gradient(circle at 10% 20%, #1e3a5f 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, #0a1a33 0%, transparent 40%),
+    #0f1a2f;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -36,19 +36,43 @@ body {
   margin-bottom: 4rem;
 }
 
+.logo-image {
+  max-width: 120px;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
 .logo {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 4.5rem;
   letter-spacing: 4px;
   color: #fff;
-  text-shadow: 2px 2px 0px #ff0000, 4px 4px 0px #000;
+  text-shadow: 2px 2px 0px #1e3a5f, 4px 4px 0px #0a1a33;
   margin-bottom: 0.5rem;
 }
 
 .slogan {
   font-size: 1.2rem;
-  color: #ccc;
+  color: #a8c6ff;
   letter-spacing: 2px;
+}
+
+/* Messaggio */
+.message-box {
+  background: rgba(30, 58, 95, 0.8);
+  border: 1px solid #2d5a9a;
+  border-radius: 8px;
+  padding: 1rem 2rem;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  color: #fff;
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Menu */
@@ -60,15 +84,14 @@ body {
 }
 
 .menu-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid #ff0000;
-  border-radius: 0;
+  background: rgba(30, 58, 95, 0.6);
+  border: 2px solid #2d5a9a;
+  border-radius: 12px;
   padding: 2rem 1rem;
   color: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-  transform: skew(-2deg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -76,10 +99,10 @@ body {
 }
 
 .menu-btn:hover {
-  transform: skew(-2deg) scale(1.05);
-  border-color: #ff6b6b;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+  transform: scale(1.05);
+  border-color: #4a7bc8;
+  background: rgba(45, 90, 154, 0.8);
+  box-shadow: 0 0 30px rgba(45, 90, 154, 0.5);
 }
 
 .icon {
@@ -94,9 +117,9 @@ body {
 
 /* Footer */
 .footer {
-  border-top: 1px solid #333;
+  border-top: 1px solid #1e3a5f;
   padding-top: 2rem;
-  color: #888;
+  color: #a8c6ff;
   font-style: italic;
 }
 
@@ -104,6 +127,10 @@ body {
 @media (max-width: 768px) {
   .logo {
     font-size: 3rem;
+  }
+  
+  .logo-image {
+    max-width: 80px;
   }
   
   .menu-grid {
