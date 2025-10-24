@@ -8,20 +8,23 @@ function GeneraSquadre() {
   const [bilanciaLivello, setBilanciaLivello] = useState(true);
   const [caricamentoGiocatori, setCaricamentoGiocatori] = useState(true);
   const [errore, setErrore] = useState('');
+  const [modalVoti, setModalVoti] = useState(false);
+  const [votiTemporanei, setVotiTemporanei] = useState({});
+  const [salvataggioVoti, setSalvataggioVoti] = useState(false);
 
-  // Carica giocatori DAL TUO DATABASE con gestione errori RLS
+  // Carica giocatori e voti
   useEffect(() => {
-    caricaGiocatoriDatabase();
+    caricaGiocatoriEVoti();
   }, []);
 
-  const caricaGiocatoriDatabase = async () => {
+  const caricaGiocatoriEVoti = async () => {
     try {
       setCaricamentoGiocatori(true);
       setErrore('');
       
-      console.log('📡 Caricamento giocatori dal database...');
+      console.log('📡 Caricamento giocatori e voti dal database...');
       
-      // PRIMA prova con JOIN
+      // PRIMA prova con JOIN completo
       let { data: giocatoriDB, error } = await supabase
         .from('classifiche')
         .select(`
@@ -35,11 +38,16 @@ function GeneraSquadre() {
             difensore,
             centrocampista,
             attaccante
+          ),
+          voti_giocatori!left (
+            id,
+            voto,
+            created_at
           )
         `)
         .order('punteggio_calcolato', { ascending: false });
 
-      // Se errore di ricorsione RLS, usa approccio alternativo
+      // Se errore RLS, usa approccio alternativo
       if (error && (error.message.includes('recursion') || error.message.includes('policy'))) {
         console.log('🔄 Errore RLS rilevato, uso approccio alternativo...');
         await caricaConApproccioAlternativo();
@@ -57,21 +65,19 @@ function GeneraSquadre() {
       if (!giocatoriDB || giocatoriDB.length === 0) {
         console.log('⚠️ Nessun giocatore nella classifica');
         setErrore('Nessun giocatore trovato nella classifica. La tabella "classifiche" potrebbe essere vuota.');
-        
-        // Prova a caricare direttamente dai profili utenti
         await caricaDaProfiliUtenti();
         return;
       }
 
-      // Mappa i giocatori con i dati corretti
+      // Mappa i giocatori con voti
       const giocatoriMappati = giocatoriDB.map(giocatore => {
         // Calcola il livello basato sul punteggio_calcolato o livello_scarparo
-        let livello = 50; // Default
+        let livello = 50;
+        let votoAttuale = null;
         
         if (giocatore.punteggio_calcolato) {
           livello = Math.round((giocatore.punteggio_calcolato - 4) * 20);
         } else if (giocatore.profili_utenti?.livello_scarparo) {
-          // Mappa livello_scarparo a numero
           const livelli = {
             'principiante': 40,
             'intermedio': 65,
@@ -80,17 +86,27 @@ function GeneraSquadre() {
           livello = livelli[giocatore.profili_utenti.livello_scarparo] || 50;
         }
 
-        // Ottieni il nome dal profilo utente
+        // Gestisci voti
+        if (giocatore.voti_giocatori && giocatore.voti_giocatori.length > 0) {
+          // Prendi l'ultimo voto (più recente)
+          const ultimoVoto = giocatore.voti_giocatori.sort((a, b) => 
+            new Date(b.created_at) - new Date(a.created_at)
+          )[0];
+          votoAttuale = ultimoVoto.voto;
+        }
+
+        // Ottieni il nome
         const nomeCompleto = giocatore.profili_utenti?.nome_completo 
           || giocatore.profili_utenti?.nickname
           || `Giocatore ${giocatore.id}`;
 
         return {
           id: giocatore.id,
+          giocatore_id: giocatore.giocatore_id,
           nome: nomeCompleto,
-          livello: Math.max(30, Math.min(100, livello)), // Limita tra 30 e 100
+          livello: Math.max(30, Math.min(100, livello)),
+          voto_attuale: votoAttuale,
           selezionato: false,
-          // Dettagli aggiuntivi
           punteggio_calcolato: giocatore.punteggio_calcolato,
           media_voto: giocatore.media_voto,
           partite_giocate: giocatore.partite_giocate,
@@ -105,7 +121,7 @@ function GeneraSquadre() {
         };
       });
 
-      console.log('🎯 Giocatori mappati:', giocatoriMappati);
+      console.log('🎯 Giocatori con voti:', giocatoriMappati);
       setGiocatori(giocatoriMappati);
 
     } catch (error) {
@@ -116,7 +132,7 @@ function GeneraSquadre() {
     }
   };
 
-  // APPROCCIO ALTERNATIVO per evitare problemi RLS
+  // APPROCCIO ALTERNATIVO con caricamento voti separato
   const caricaConApproccioAlternativo = async () => {
     try {
       console.log('🔄 Caricamento con approccio alternativo...');
@@ -143,17 +159,19 @@ function GeneraSquadre() {
         .select('*')
         .in('id', giocatoreIds);
 
-      if (errorProfili) {
-        console.warn('⚠️ Errore caricamento profili, continuo senza...', errorProfili);
-        // Continua senza dati profili
-      }
+      // Carica voti separatamente
+      const { data: voti, error: errorVoti } = await supabase
+        .from('voti_giocatori')
+        .select('*')
+        .in('giocatore_id', giocatoreIds);
 
-      console.log('📊 Classifica:', classifica);
-      console.log('👤 Profili:', profili);
+      if (errorProfili) console.warn('⚠️ Errore caricamento profili:', errorProfili);
+      if (errorVoti) console.warn('⚠️ Errore caricamento voti:', errorVoti);
 
       // Combina manualmente i dati
       const giocatoriCombinati = classifica.map(record => {
         const profilo = profili?.find(p => p.id === record.giocatore_id);
+        const votiGiocatore = voti?.filter(v => v.giocatore_id === record.giocatore_id) || [];
         
         // Calcola livello
         let livello = 50;
@@ -168,6 +186,15 @@ function GeneraSquadre() {
           livello = livelli[profilo.livello_scarparo] || 50;
         }
 
+        // Gestisci voti
+        let votoAttuale = null;
+        if (votiGiocatore.length > 0) {
+          const ultimoVoto = votiGiocatore.sort((a, b) => 
+            new Date(b.created_at) - new Date(a.created_at)
+          )[0];
+          votoAttuale = ultimoVoto.voto;
+        }
+
         // Nome
         const nomeCompleto = profilo?.nome_completo 
           || profilo?.nickname
@@ -175,8 +202,10 @@ function GeneraSquadre() {
 
         return {
           id: record.id,
+          giocatore_id: record.giocatore_id,
           nome: nomeCompleto,
           livello: Math.max(30, Math.min(100, livello)),
+          voto_attuale: votoAttuale,
           selezionato: false,
           punteggio_calcolato: record.punteggio_calcolato,
           media_voto: record.media_voto,
@@ -189,24 +218,22 @@ function GeneraSquadre() {
             centrocampista: profilo?.centrocampista,
             attaccante: profilo?.attaccante
           },
-          da_profili: false,
-          approccio_alternativo: true // Flag per identificare questo approccio
+          approccio_alternativo: true
         };
       });
 
-      console.log('✅ Giocatori combinati:', giocatoriCombinati);
+      console.log('✅ Giocatori con voti (alternativo):', giocatoriCombinati);
       setGiocatori(giocatoriCombinati);
-      setErrore(`Caricati ${giocatoriCombinati.length} giocatori (modalità alternativa)`);
+      setErrore(`Caricati ${giocatoriCombinati.length} giocatori con voti (modalità alternativa)`);
 
     } catch (error) {
       console.error('❌ Errore approccio alternativo:', error);
       setErrore(`Errore caricamento: ${error.message}`);
-      // Fallback finale
       await caricaDaProfiliUtenti();
     }
   };
 
-  // Fallback: carica direttamente dai profili utenti se classifica è vuota
+  // Fallback: carica dai profili utenti
   const caricaDaProfiliUtenti = async () => {
     try {
       console.log('🔄 Tentativo caricamento da profili_utenti...');
@@ -224,10 +251,26 @@ function GeneraSquadre() {
         return;
       }
 
-      console.log('✅ Profili utenti caricati:', profiliDB);
+      // Carica voti per questi profili
+      const profiliIds = profiliDB.map(p => p.id);
+      const { data: voti, error: errorVoti } = await supabase
+        .from('voti_giocatori')
+        .select('*')
+        .in('giocatore_id', profiliIds);
+
+      if (errorVoti) console.warn('Errore caricamento voti:', errorVoti);
 
       const giocatoriMappati = profiliDB.map(profilo => {
-        // Mappa livello_scarparo a numero
+        const votiGiocatore = voti?.filter(v => v.giocatore_id === profilo.id) || [];
+        let votoAttuale = null;
+
+        if (votiGiocatore.length > 0) {
+          const ultimoVoto = votiGiocatore.sort((a, b) => 
+            new Date(b.created_at) - new Date(a.created_at)
+          )[0];
+          votoAttuale = ultimoVoto.voto;
+        }
+
         const livelli = {
           'principiante': 40,
           'intermedio': 65,
@@ -239,8 +282,10 @@ function GeneraSquadre() {
 
         return {
           id: profilo.id,
+          giocatore_id: profilo.id,
           nome: profilo.nome_completo || profilo.nickname || `Giocatore ${profilo.id}`,
           livello: livello,
+          voto_attuale: votoAttuale,
           selezionato: false,
           livello_scarparo: profilo.livello_scarparo,
           ruolo: {
@@ -249,12 +294,12 @@ function GeneraSquadre() {
             centrocampista: profilo.centrocampista,
             attaccante: profilo.attaccante
           },
-          da_profili: true // Flag per identificare che viene dai profili
+          da_profili: true
         };
       });
 
       setGiocatori(giocatoriMappati);
-      setErrore(`Caricati ${giocatoriMappati.length} giocatori dai profili (classifica vuota)`);
+      setErrore(`Caricati ${giocatoriMappati.length} giocatori dai profili con voti`);
 
     } catch (error) {
       console.error('❌ Errore caricamento profili:', error);
@@ -262,6 +307,72 @@ function GeneraSquadre() {
     }
   };
 
+  // APRI MODAL PER INSERIMENTO VOTI
+  const apriModalVoti = () => {
+    // Inizializza voti temporanei con i voti attuali
+    const votiIniziali = {};
+    giocatori.forEach(giocatore => {
+      votiIniziali[giocatore.giocatore_id || giocatore.id] = giocatore.voto_attuale || '';
+    });
+    setVotiTemporanei(votiIniziali);
+    setModalVoti(true);
+  };
+
+  // AGGIORNA VOTO TEMPORANEO
+  const aggiornaVotoTemporaneo = (giocatoreId, voto) => {
+    // Convalida voto (da 1 a 10)
+    if (voto === '' || (voto >= 1 && voto <= 10)) {
+      setVotiTemporanei(prev => ({
+        ...prev,
+        [giocatoreId]: voto === '' ? '' : Number(voto)
+      }));
+    }
+  };
+
+  // SALVA TUTTI I VOTI NEL DATABASE
+  const salvaVoti = async () => {
+    try {
+      setSalvataggioVoti(true);
+      
+      const votiDaSalvare = Object.entries(votiTemporanei)
+        .filter(([_, voto]) => voto !== '' && voto !== null)
+        .map(([giocatoreId, voto]) => ({
+          giocatore_id: giocatoreId,
+          voto: voto,
+          creato_da: 'admin' // O usa auth.uid() se hai autenticazione
+        }));
+
+      console.log('💾 Salvando voti:', votiDaSalvare);
+
+      if (votiDaSalvare.length === 0) {
+        alert('⚠️ Nessun voto da salvare!');
+        setModalVoti(false);
+        return;
+      }
+
+      // Inserisci i nuovi voti
+      const { error } = await supabase
+        .from('voti_giocatori')
+        .insert(votiDaSalvare);
+
+      if (error) throw error;
+
+      console.log('✅ Voti salvati con successo!');
+      alert(`✅ ${votiDaSalvare.length} voti salvati con successo!`);
+      
+      // Ricarica i giocatori per aggiornare i voti
+      await caricaGiocatoriEVoti();
+      setModalVoti(false);
+
+    } catch (error) {
+      console.error('❌ Errore salvataggio voti:', error);
+      alert(`❌ Errore nel salvataggio dei voti: ${error.message}`);
+    } finally {
+      setSalvataggioVoti(false);
+    }
+  };
+
+  // FUNZIONI ESISTENTI (modificate per considerare i voti)
   const toggleSelezioneGiocatore = (giocatoreId) => {
     setGiocatori(prev => prev.map(g => 
       g.id === giocatoreId ? { ...g, selezionato: !g.selezionato } : g
@@ -372,10 +483,10 @@ function GeneraSquadre() {
     
     const testo = `
 🟥 SQUADRA A (${squadreGenerate.bilanciamento.totaleA} pts):
-${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}`).join('\n')}
+${squadreGenerate.squadraA.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}${g.voto_attuale ? ` - Voto: ${g.voto_attuale}` : ''}`).join('\n')}
 
 🟦 SQUADRA B (${squadreGenerate.bilanciamento.totaleB} pts):
-${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}`).join('\n')}
+${squadreGenerate.squadraB.map((g, i) => `${i + 1}. ${g.nome} - Lvl ${g.livello}${g.voto_attuale ? ` - Voto: ${g.voto_attuale}` : ''}`).join('\n')}
 
 Bilanciamento: ${squadreGenerate.bilanciamento.percentualeBilanciamento}% 
 ${squadreGenerate.bilanciamento.valutazione}
@@ -387,6 +498,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
   };
 
   const giocatoriSelezionatiCount = giocatori.filter(g => g.selezionato).length;
+  const giocatoriConVoto = giocatori.filter(g => g.voto_attuale !== null).length;
   const livelloMedio = giocatori.length > 0 
     ? Math.round(giocatori.reduce((sum, g) => sum + g.livello, 0) / giocatori.length)
     : 0;
@@ -395,8 +507,8 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     return (
       <div className="genera-squadre-container">
         <div className="loading">
-          <h3>🔄 Caricamento giocatori dal database...</h3>
-          <p>Sto leggendo la classifica e i profili utenti</p>
+          <h3>🔄 Caricamento giocatori e voti...</h3>
+          <p>Sto leggendo classifica, profili e voti dei giocatori</p>
         </div>
       </div>
     );
@@ -406,7 +518,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
     <div className="genera-squadre-container">
       <div className="genera-squadre-header">
         <h2>👥 Genera Squadre</h2>
-        <p>Basato sui giocatori reali del database</p>
+        <p>Basato sui giocatori reali del database con sistema voti</p>
       </div>
 
       {/* MESSAGGIO ERRORE */}
@@ -414,10 +526,6 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <div className="error-message">
           <h4>⚠️ Informazione</h4>
           <p>{errore}</p>
-          <small>
-            {errore.includes('modalità alternativa') && 
-              'Sto usando un approccio alternativo per evitare problemi di sicurezza del database.'}
-          </small>
         </div>
       )}
 
@@ -426,10 +534,14 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <div className="stats-rapide">
           <span className="stat">Giocatori: {giocatori.length}</span>
           <span className="stat">Selezionati: {giocatoriSelezionatiCount}</span>
+          <span className="stat">Con voto: {giocatoriConVoto}</span>
           <span className="stat">Livello medio: {livelloMedio}</span>
         </div>
         
         <div className="azioni-rapide">
+          <button onClick={apriModalVoti} className="btn-primary">
+            📝 Inserisci Voti
+          </button>
           <button onClick={selezionaTutti} className="btn-secondary">
             Seleziona Tutti
           </button>
@@ -458,7 +570,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
         <small>Crea squadre equilibrate basate sui livelli dei giocatori</small>
       </div>
 
-      {/* LISTA GIOCATORI */}
+      {/* LISTA GIOCATORI CON VOTI */}
       <div className="lista-giocatori">
         <h3>
           {giocatori.length > 0 && giocatori[0].da_profili 
@@ -467,7 +579,7 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
             ? 'Giocatori (Modalità Alternativa)'
             : 'Giocatori dalla Classifica'
           } 
-          ({giocatoriSelezionatiCount} selezionati)
+          ({giocatoriSelezionatiCount} selezionati, {giocatoriConVoto} con voto)
         </h3>
         
         {giocatori.length === 0 ? (
@@ -487,11 +599,11 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                   <h4>{giocatore.nome}</h4>
                   <div className="livello-dettagli">
                     <span className="livello">Livello: {giocatore.livello}</span>
+                    {giocatore.voto_attuale && (
+                      <span className="voto-attuale">⭐ Voto: {giocatore.voto_attuale}</span>
+                    )}
                     {giocatore.livello_scarparo && (
                       <span className="livello-scarparo">({giocatore.livello_scarparo})</span>
-                    )}
-                    {giocatore.punteggio_calcolato && (
-                      <span className="punteggio">Punteggio: {giocatore.punteggio_calcolato}</span>
                     )}
                   </div>
                 </div>
@@ -514,6 +626,68 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
           >
             {loading ? '🎲 Generando Squadre...' : `🎯 Genera Squadre (${giocatoriSelezionatiCount} giocatori)`}
           </button>
+        </div>
+      )}
+
+      {/* MODAL INSERIMENTO VOTI */}
+      {modalVoti && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>📝 Inserisci Voti Giocatori</h3>
+              <button 
+                onClick={() => setModalVoti(false)}
+                className="btn-close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <p>Inserisci i voti da 1 a 10 per ogni giocatore:</p>
+              
+              <div className="voti-grid">
+                {giocatori.map(giocatore => (
+                  <div key={giocatore.giocatore_id || giocatore.id} className="voto-item">
+                    <label>{giocatore.nome}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      step="0.5"
+                      value={votiTemporanei[giocatore.giocatore_id || giocatore.id] || ''}
+                      onChange={(e) => aggiornaVotoTemporaneo(
+                        giocatore.giocatore_id || giocatore.id, 
+                        e.target.value
+                      )}
+                      placeholder="Voto (1-10)"
+                    />
+                    {giocatore.voto_attuale && (
+                      <span className="voto-precedente">
+                        Precedente: {giocatore.voto_attuale}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                onClick={() => setModalVoti(false)}
+                className="btn-secondary"
+              >
+                Annulla
+              </button>
+              <button 
+                onClick={salvaVoti}
+                disabled={salvataggioVoti}
+                className="btn-primary"
+              >
+                {salvataggioVoti ? '💾 Salvando...' : '💾 Salva Tutti i Voti'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -548,6 +722,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
                     <span className="livello">{giocatore.livello}</span>
+                    {giocatore.voto_attuale && (
+                      <span className="voto">⭐ {giocatore.voto_attuale}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -565,6 +742,9 @@ Differenza: ${squadreGenerate.bilanciamento.differenza} punti
                     <span className="posizione">{index + 1}.</span>
                     <span className="nome">{giocatore.nome}</span>
                     <span className="livello">{giocatore.livello}</span>
+                    {giocatore.voto_attuale && (
+                      <span className="voto">⭐ {giocatore.voto_attuale}</span>
+                    )}
                   </div>
                 ))}
               </div>
