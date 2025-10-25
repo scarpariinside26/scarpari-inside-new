@@ -57,33 +57,42 @@ function CreaEvento({ onSuccess, onCancel }) {
     setError('');
   };
 
-  // FUNZIONE SEMPLIFICATA - SENZA EMAIL PER ORA
+  // FUNZIONE NOTIFICHE EMAIL - REALE
   const inviaNotificaEmail = async (evento) => {
     try {
-      console.log('📧 Simulazione invio notifica per evento:', evento.nome_evento);
+      console.log('📧 Invio notifica REALE per evento:', evento.nome_evento);
       
-      // SIMULAZIONE - Rimuovi commento quando l'API è pronta
-      /*
       const response = await fetch('/api/send-notifica', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           evento: evento,
           emailDestinatario: 'giocatore@example.com'
         }),
       });
 
-      const result = await response.json();
-      console.log('📧 Risultato email:', result);
-      return result;
-      */
+      console.log('📧 Status risposta:', response.status);
       
-      // PER ORA SOLO SIMULAZIONE
-      return { success: true, simulated: true, message: 'Notifica simulata' };
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('📧 Risultato API:', result);
+      
+      if (result.success) {
+        console.log('✅ Notifica inviata con successo');
+        return result;
+      } else {
+        console.error('❌ Errore notifica:', result.error);
+        throw new Error(result.error);
+      }
       
     } catch (error) {
-      console.error('❌ Errore invio notifica:', error);
-      return { success: false, error: error.message };
+      console.error('❌ Errore chiamata API:', error);
+      throw error;
     }
   };
 
@@ -122,7 +131,7 @@ function CreaEvento({ onSuccess, onCancel }) {
         auto_generate_squadre: formData.auto_generate_squadre,
         
         // Programmazione
-        programma_promemoria: formData.programma_promemoria,
+        programa_promemoria: formData.programma_promemoria,
         
         // Metadati
         creato_da: (await supabase.auth.getUser()).data.user?.id,
@@ -144,14 +153,14 @@ function CreaEvento({ onSuccess, onCancel }) {
 
       console.log('✅ Evento creato:', data);
       
-      // 🎯 INVIA NOTIFICA EMAIL (SIMULATA PER ORA)
+      // 🎯 INVIA NOTIFICA EMAIL
       console.log('📧 Invio notifica email...');
       const risultatoNotifica = await inviaNotificaEmail(data);
       
-      if (risultatoNotifica.success) {
-        alert('✅ Evento avanzato creato con successo! Notifica inviata.');
+      if (risultatoNotifica.testMode) {
+        alert(`✅ Evento creato! 🛡️ TEST MODE: Notifica inviata a TE invece che ai giocatori`);
       } else {
-        alert('✅ Evento creato con successo! (Notifica non inviata)');
+        alert('✅ Evento creato! Notifica inviata a tutti i partecipanti!');
       }
       
       onSuccess();
