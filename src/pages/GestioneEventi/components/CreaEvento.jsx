@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../../../supabaseClient'; // PERCORSO CORRETTO: ../../../
+import { supabase } from '../../../../supabaseClient';
 
 function CreaEvento({ onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
