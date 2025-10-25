@@ -131,7 +131,7 @@ function CreaEvento({ onSuccess, onCancel }) {
         auto_generate_squadre: formData.auto_generate_squadre,
         
         // Programmazione
-        programa_promemoria: formData.programma_promemoria,
+        programma_promemoria: formData.programma_promemoria,
         
         // Metadati
         creato_da: (await supabase.auth.getUser()).data.user?.id,
