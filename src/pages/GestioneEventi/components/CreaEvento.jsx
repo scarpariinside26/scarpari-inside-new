@@ -13,9 +13,9 @@ function CreaEvento({ onSuccess, onCancel }) {
     tipo_evento: 'sportivo',
     visibilita: 'pubblico',
     
-    // STEP 2: Data e Luogo (SEMPLIFICATO)
+    // STEP 2: Data e Luogo
     data_ora: '',
-    ritrovo_minuti_prima: 15, // 👈 NUOVO - invece di data_ora_ritrovo
+    ritrovo_minuti_prima: 15,
     durata_minuti: 90,
     luogo: '',
     indirizzo_gmaps: '',
@@ -57,16 +57,16 @@ function CreaEvento({ onSuccess, onCancel }) {
     setError('');
   };
 
-  // Funzione per inviare notifica email
+  // FUNZIONE SEMPLIFICATA - SENZA EMAIL PER ORA
   const inviaNotificaEmail = async (evento) => {
     try {
-      console.log('📧 Invio notifica per evento:', evento.nome_evento);
+      console.log('📧 Simulazione invio notifica per evento:', evento.nome_evento);
       
+      // SIMULAZIONE - Rimuovi commento quando l'API è pronta
+      /*
       const response = await fetch('/api/send-notifica', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           evento: evento,
           emailDestinatario: 'giocatore@example.com'
@@ -74,20 +74,15 @@ function CreaEvento({ onSuccess, onCancel }) {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Notifica email inviata:', result);
-        
-        if (result.testMode) {
-          alert(`🛡️ MODALITÀ TEST: Email inviata a TE invece che a: ${result.originalRecipient}`);
-        }
-      } else {
-        console.error('❌ Errore invio email:', result.error);
-      }
-      
+      console.log('📧 Risultato email:', result);
       return result;
+      */
+      
+      // PER ORA SOLO SIMULAZIONE
+      return { success: true, simulated: true, message: 'Notifica simulata' };
+      
     } catch (error) {
-      console.error('❌ Errore chiamata API:', error);
+      console.error('❌ Errore invio notifica:', error);
       return { success: false, error: error.message };
     }
   };
@@ -110,9 +105,9 @@ function CreaEvento({ onSuccess, onCancel }) {
         tipo_evento: formData.tipo_evento,
         visibilita: formData.visibilita,
         
-        // Data e Luogo - SEMPLIFICATO!
+        // Data e Luogo
         data_ora: new Date(formData.data_ora).toISOString(),
-        data_ora_ritrovo: null, // 👈 Non usiamo più questo campo complesso
+        data_ora_ritrovo: null,
         durata_minuti: parseInt(formData.durata_minuti) || 90,
         luogo: formData.luogo,
         indirizzo_gmaps: formData.indirizzo_gmaps || null,
@@ -149,11 +144,16 @@ function CreaEvento({ onSuccess, onCancel }) {
 
       console.log('✅ Evento creato:', data);
       
-      // 🎯 INVIA NOTIFICA EMAIL DOPO CREAZIONE EVENTO
+      // 🎯 INVIA NOTIFICA EMAIL (SIMULATA PER ORA)
       console.log('📧 Invio notifica email...');
-      await inviaNotificaEmail(data);
+      const risultatoNotifica = await inviaNotificaEmail(data);
       
-      alert('✅ Evento avanzato creato con successo! Notifica inviata.');
+      if (risultatoNotifica.success) {
+        alert('✅ Evento avanzato creato con successo! Notifica inviata.');
+      } else {
+        alert('✅ Evento creato con successo! (Notifica non inviata)');
+      }
+      
       onSuccess();
 
     } catch (error) {
