@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../../../supabaseClient';
+import { supabase } from '../../../lib/supabaseClient';  // ✅
 function GeneraSquadre() {
   const [giocatori, setGiocatori] = useState([]);
   const [giocatoriFiltrati, setGiocatoriFiltrati] = useState([]);
