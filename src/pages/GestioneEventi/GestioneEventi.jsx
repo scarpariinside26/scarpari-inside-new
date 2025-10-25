@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../../../../lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';  // ✅ CORRETTO
 import './GestioneEventi.css';
 import CreaEvento from './components/CreaEvento';
 import ListaEventi from './components/ListaEventi';
