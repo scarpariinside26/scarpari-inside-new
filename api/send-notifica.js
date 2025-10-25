@@ -1,81 +1,65 @@
 const nodemailer = require('nodemailer');
 
 module.exports = async (req, res) => {
-  // Abilita CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+  // Imposta header JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   try {
-    console.log('📧 [API] Ricevuta richiesta send-notifica');
+    console.log('📧 API chiamata');
     
-    const isTestMode = process.env.EMAIL_TEST_MODE === 'true';
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
-    
-    console.log('📧 [API] Config test:', {
-      isTestMode,
-      adminEmail,
-      gmailUser: gmailUser ? '***' : 'MISSING',
-      hasGmailPass: !!gmailPass
+    // DEBUG: Log delle environment variables (senza password)
+    console.log('🔧 Config:', {
+      hasGmailUser: !!process.env.GMAIL_USER,
+      hasGmailPass: !!process.env.GMAIL_APP_PASSWORD,
+      testMode: process.env.EMAIL_TEST_MODE,
+      adminEmail: process.env.ADMIN_EMAIL
     });
 
-    if (!gmailUser || !gmailPass) {
-      throw new Error('Environment variables mancanti');
+    // Verifica environment variables
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      throw new Error('Variabili GMAIL_USER o GMAIL_APP_PASSWORD mancanti');
     }
 
+    // Configura email
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: gmailUser,
-        pass: gmailPass
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
       }
     });
 
-    const { evento, emailDestinatario } = req.body;
-    const emailFinale = isTestMode ? adminEmail : emailDestinatario;
+    const { evento, emailDestinatario } = req.body || {};
+    const isTestMode = process.env.EMAIL_TEST_MODE === 'true';
+    const emailFinale = isTestMode ? process.env.ADMIN_EMAIL : (emailDestinatario || 'test@example.com');
 
-    console.log('📧 [API] Invio a:', emailFinale);
+    console.log('📧 Invio a:', emailFinale);
 
+    // Invio email semplice
     const info = await transporter.sendMail({
-      from: `"Scarpari Inside" <${gmailUser}>`,
+      from: `"Scarpari Inside" <${process.env.GMAIL_USER}>`,
       to: emailFinale,
-      subject: `⚽ ${evento.nome_evento}`,
-      html: `
-        <h2>⚽ Nuovo Evento: ${evento.nome_evento}</h2>
-        <p><strong>📅 Data:</strong> ${new Date(evento.data_ora).toLocaleDateString('it-IT')}</p>
-        <p><strong>📍 Luogo:</strong> ${evento.luogo}</p>
-        <p><strong>👥 Partecipanti:</strong> Max ${evento.max_partecipanti}</p>
-        ${isTestMode ? `<p style="color: red;"><strong>🛡️ TEST MODE:</strong> Email inviata a te invece che a: ${emailDestinatario}</p>` : ''}
-      `
+      subject: '✅ Test Email Scarpari Inside',
+      text: `Test riuscito! Evento: ${evento?.nome_evento || 'Nessun evento'}`,
+      html: `<h1>Test Email Scarpari</h1><p>Funziona! 🎉</p>`
     });
 
-    console.log('✅ [API] Email inviata con successo');
+    console.log('✅ Email inviata:', info.messageId);
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       testMode: isTestMode,
-      originalRecipient: emailDestinatario,
-      actualRecipient: emailFinale,
-      message: 'Email inviata con successo'
+      message: 'Email inviata con successo',
+      messageId: info.messageId
     });
 
   } catch (error) {
-    console.error('❌ [API] Errore:', error);
-    res.status(500).json({ 
+    console.error('❌ Errore API:', error.message);
+    
+    res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      details: 'Controlla environment variables su Vercel'
     });
   }
 };
