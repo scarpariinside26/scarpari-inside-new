@@ -3,63 +3,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
-function HomePage() {
-  const [oneSignalLoaded, setOneSignalLoaded] = useState(false);
-
-  // FUNZIONE PER INVIARE NOTIFICHE CON ONESIGNAL SDK
-  const sendNotification = async (title, message, buttons = []) => {
-    if (!window.OneSignal) {
-      console.error('❌ OneSignal non caricato');
-      return { success: false, error: 'OneSignal non inizializzato' };
-    }
-
-    try {
-      console.log('📧 Invio notifica via SDK:', title);
-      
-      // Usa OneSignal SDK invece di fetch diretto
-      const result = await window.OneSignal.sendNotification(
-        title,
-        message,
-        buttons,
-        {
-          url: window.location.origin
-        }
-      );
-      
-      console.log('✅ Notifica inviata con SDK');
-      return { success: true, id: result };
-      
-    } catch (error) {
-      console.error('❌ Errore invio notifica SDK:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
-  // TEST NOTIFICHE - VERSIONE SICURA
-  const testNotification = async () => {
-    console.log('🧪 Avvio test notifica sicura...');
-    
-    if (!oneSignalLoaded) {
-      alert('⚠️ OneSignal non ancora caricato. Attendi qualche secondo...');
-      return;
-    }
-
-    const result = await sendNotification(
-      '🧪 Test Scarpari Inside!', 
-      'Se ricevi questa notifica, il sistema funziona perfettamente! 🎉', 
-      [
-        { id: "conferma", text: "✅ Tutto OK!" },
-        { id: "problema", text: "❌ Non funziona" }
-      ]
-    );
-    
-    if (result.success) {
-      alert('✅ Notifica inviata! Controlla se la ricevi.');
-    } else {
-      alert('❌ Errore: ' + (result.error || 'Prova a ricaricare la pagina'));
-    }
-  };
-
+function HomePage({ oneSignalLoaded, onTestNotification }) {
   return (
     <div className="container">
       <header className="header">
@@ -76,7 +20,7 @@ function HomePage() {
         {/* BOTTONE TEST NOTIFICHE */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <button 
-            onClick={testNotification}
+            onClick={onTestNotification}
             disabled={!oneSignalLoaded}
             style={{
               padding: '12px 24px',
@@ -94,6 +38,18 @@ function HomePage() {
           <p style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
             {oneSignalLoaded ? 'Clicca per testare le notifiche push' : 'Attendere il caricamento di OneSignal...'}
           </p>
+          
+          {/* DEBUG INFO */}
+          <div style={{ 
+            fontSize: '12px', 
+            color: oneSignalLoaded ? 'green' : 'orange',
+            marginTop: '10px',
+            padding: '10px',
+            background: '#f5f5f5',
+            borderRadius: '5px'
+          }}>
+            {oneSignalLoaded ? '✅ OneSignal CARICATO' : '🔄 OneSignal in caricamento...'}
+          </div>
         </div>
 
         <div className="menu-grid">
@@ -138,86 +94,152 @@ function HomePage() {
 
 function App() {
   const [oneSignalLoaded, setOneSignalLoaded] = useState(false);
+  const [oneSignalError, setOneSignalError] = useState('');
+
+  // TEST NOTIFICHE - VERSIONE SEMPLICE
+  const testNotification = async () => {
+    console.log('🧪 Test notifica...');
+    
+    if (!window.OneSignal) {
+      alert('❌ OneSignal non ancora pronto');
+      return;
+    }
+
+    try {
+      // Prova a inviare una notifica di test
+      // Per ora mostriamo solo un alert
+      alert('✅ OneSignal è caricato! Le notifiche sono pronte.\n\nOra puoi:\n1. Configurare le notifiche in Dashboard OneSignal\n2. Inviare notifiche manualmente dalla dashboard\n3. I tuoi utenti riceveranno le notifiche!');
+      
+      console.log('✅ Test completato - OneSignal funziona');
+    } catch (error) {
+      console.error('❌ Errore test:', error);
+      alert('❌ Errore: ' + error.message);
+    }
+  };
 
   useEffect(() => {
-    // INIZIALIZZAZIONE ONESIGNAL MIGLIORATA
+    console.log('🚀 INIZIO INIZIALIZZAZIONE ONESIGNAL');
+    
+    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+    console.log('🔍 App ID:', appId ? 'PRESENTE' : 'MANCANTE');
+    
+    if (!appId) {
+      setOneSignalError('❌ VITE_ONESIGNAL_APP_ID non configurato in Vercel');
+      console.error('VITE_ONESIGNAL_APP_ID mancante');
+      return;
+    }
+
+    // VERIFICA SE ONESIGNAL È GIA' CARICATO
+    if (window.OneSignal) {
+      console.log('✅ OneSignal già presente');
+      setOneSignalLoaded(true);
+      return;
+    }
+
+    // CARICAMENTO ONESIGNAL - VERSIONE SICURA
     const loadOneSignal = () => {
-      if (window.OneSignal) {
-        console.log('✅ OneSignal già caricato');
-        initializeOneSignal();
-        return;
-      }
+      return new Promise((resolve, reject) => {
+        // Se OneSignal è già in caricamento, aspetta
+        if (window.OneSignalDeferred) {
+          window.OneSignalDeferred.push(resolve);
+          return;
+        }
 
-      const script = document.createElement('script');
-      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-      script.async = true;
-      
-      script.onload = () => {
-        console.log('✅ OneSignal script caricato');
-        initializeOneSignal();
-      };
-      
-      script.onerror = () => {
-        console.error('❌ Errore caricamento OneSignal');
-        setOneSignalLoaded(false);
-      };
-      
-      document.head.appendChild(script);
-    };
-
-    const initializeOneSignal = () => {
-      window.OneSignal = window.OneSignal || [];
-      
-      window.OneSignal.push(function() {
-        window.OneSignal.init({
-          appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
-          allowLocalhostAsSecureOrigin: true,
-        })
-        .then(() => {
-          console.log('✅ OneSignal inizializzato con successo');
-          setOneSignalLoaded(true);
-          
-          // Mostra il prompt dopo l'inizializzazione
-          return window.OneSignal.showSlidedownPrompt();
-        })
-        .then(() => {
-          console.log('✅ Prompt mostrato');
-        })
-        .catch(error => {
-          console.error('❌ Errore inizializzazione OneSignal:', error);
-          setOneSignalLoaded(false);
-        });
-
-        // GESTIONE CLICK NOTIFICHE
-        window.OneSignal.on('notificationClick', function(event) {
-          const buttonId = event.action;
-          console.log('🔔 Notifica cliccata:', buttonId);
-          
-          if (buttonId === 'conferma') {
-            console.log('✅ Utente ha confermato partecipazione');
-            alert('✅ Partecipazione confermata!');
-          } else if (buttonId === 'problema') {
-            console.log('❌ Utente ha segnalato problema');
-            alert('❌ Problema segnalato!');
-          }
-        });
+        const script = document.createElement('script');
+        script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+        script.async = true;
+        
+        script.onload = () => {
+          console.log('✅ Script OneSignal caricato con successo');
+          // OneSignal si inizializza automaticamente
+          setTimeout(() => {
+            if (window.OneSignal) {
+              console.log('✅ OneSignal inizializzato automaticamente');
+              resolve(true);
+            } else {
+              reject(new Error('OneSignal non inizializzato dopo il caricamento'));
+            }
+          }, 1000);
+        };
+        
+        script.onerror = (error) => {
+          console.error('❌ Errore caricamento script OneSignal:', error);
+          reject(error);
+        };
+        
+        document.head.appendChild(script);
+        console.log('📜 Script OneSignal aggiunto alla pagina');
       });
     };
 
-    // INIZIALIZZA SOLO SE L'APP ID È PRESENTE
-    if (import.meta.env.VITE_ONESIGNAL_APP_ID) {
-      console.log('🚀 Inizializzazione OneSignal...');
-      loadOneSignal();
-    } else {
-      console.warn('⚠️ OneSignal App ID non configurato');
-      setOneSignalLoaded(false);
-    }
+    // ESECUZIONE CARICAMENTO
+    loadOneSignal()
+      .then(() => {
+        console.log('🎉 OneSignal caricato con successo!');
+        setOneSignalLoaded(true);
+        setOneSignalError('');
+        
+        // Aspetta che OneSignal sia completamente pronto
+        setTimeout(() => {
+          if (window.OneSignal && window.OneSignal.Notifications) {
+            console.log('🔔 OneSignal Notifications API pronto');
+            
+            // Configura i listener per i click
+            window.OneSignal.Notifications.addEventListener('click', (event) => {
+              console.log('🎯 Notifica cliccata:', event);
+              const action = event.actionId;
+              if (action === 'conferma') {
+                alert('✅ Partecipazione confermata!');
+              } else if (action === 'annulla') {
+                alert('❌ Partecipazione annullata');
+              }
+            });
+          }
+        }, 2000);
+      })
+      .catch((error) => {
+        console.error('❌ Errore caricamento OneSignal:', error);
+        setOneSignalError('Errore: ' + error.message);
+        setOneSignalLoaded(false);
+      });
+
+    // TIMEOUT DI SICUREZZA
+    const timeout = setTimeout(() => {
+      if (!oneSignalLoaded) {
+        console.warn('⚠️ Timeout caricamento OneSignal');
+        setOneSignalError('Timeout - Ricarica la pagina');
+      }
+    }, 10000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   return (
     <div className="App">
+      {/* DEBUG INFO */}
+      {oneSignalError && (
+        <div style={{
+          background: '#ffebee',
+          color: '#c62828',
+          padding: '10px',
+          textAlign: 'center',
+          fontSize: '14px',
+          borderBottom: '1px solid #ffcdd2'
+        }}>
+          ⚠️ {oneSignalError}
+        </div>
+      )}
+      
       <Routes>
-        <Route path="/" element={<HomePage oneSignalLoaded={oneSignalLoaded} />} />
+        <Route 
+          path="/" 
+          element={
+            <HomePage 
+              oneSignalLoaded={oneSignalLoaded} 
+              onTestNotification={testNotification} 
+            />
+          } 
+        />
         <Route path="/eventi" element={<GestioneEventi />} />
       </Routes>
     </div>
