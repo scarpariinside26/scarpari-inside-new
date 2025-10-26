@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 
 // Import delle pagine
 import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
+
+// Import OneSignal
+import OneSignal from 'react-onesignal';
 
 function HomePage() {
   return (
@@ -60,6 +63,45 @@ function HomePage() {
 }
 
 function App() {
+  useEffect(() => {
+    // Inizializza OneSignal quando il componente si carica
+    const initOneSignal = async () => {
+      try {
+        await OneSignal.init({
+          appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+        });
+        
+        // Mostra il popup per abilitare le notifiche
+        OneSignal.showSlidedownPrompt();
+        
+        console.log('✅ OneSignal inizializzato');
+        
+        // Opzionale: Gestisci i click sulle notifiche
+        OneSignal.on('notificationClick', function(event) {
+          const buttonId = event.action;
+          console.log('🔔 Notifica cliccata:', buttonId);
+          
+          // Esempio: se cliccano "conferma"
+          if (buttonId === 'conferma') {
+            console.log('✅ Utente ha confermato partecipazione');
+            // Qui poi aggiungerai la logica per il database
+          }
+        });
+        
+      } catch (error) {
+        console.error('❌ Errore OneSignal:', error);
+      }
+    };
+
+    // Inizializza solo se l'App ID è presente
+    if (import.meta.env.VITE_ONESIGNAL_APP_ID) {
+      initOneSignal();
+    } else {
+      console.warn('⚠️ OneSignal App ID non configurato');
+    }
+  }, []);
+
   return (
     <div className="App">
       <Routes>
