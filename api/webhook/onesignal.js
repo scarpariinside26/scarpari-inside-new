@@ -1,4 +1,5 @@
-export default async function handler(request, response) {
+// api/webhook/onesignal.js
+module.exports = async function handler(request, response) {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,7 +14,6 @@ export default async function handler(request, response) {
 
       console.log('🔔 Webhook ricevuto:', { event, user_id, action });
 
-      // Gestisci le risposte ai pulsanti
       if (event === 'notification_clicked') {
         switch (action) {
           case 'conferma':
@@ -42,4 +42,4 @@ export default async function handler(request, response) {
   } else {
     response.status(405).json({ error: 'Method not allowed' });
   }
-}
+};
