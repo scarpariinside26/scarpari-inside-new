@@ -5,9 +5,6 @@ import './App.css';
 // Import delle pagine
 import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
-// Import OneSignal
-import OneSignal from 'react-onesignal';
-
 function HomePage() {
   return (
     <div className="container">
@@ -64,39 +61,52 @@ function HomePage() {
 
 function App() {
   useEffect(() => {
-    // Inizializza OneSignal quando il componente si carica
-    const initOneSignal = async () => {
-      try {
-        await OneSignal.init({
+    // Carica OneSignal direttamente dallo script
+    const loadOneSignal = () => {
+      // Se OneSignal è già caricato, non fare nulla
+      if (window.OneSignal) {
+        console.log('✅ OneSignal già caricato');
+        initializeOneSignal();
+        return;
+      }
+
+      // Carica lo script OneSignal
+      const script = document.createElement('script');
+      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+      script.async = true;
+      script.onload = () => {
+        console.log('✅ OneSignal script caricato');
+        initializeOneSignal();
+      };
+      document.head.appendChild(script);
+    };
+
+    const initializeOneSignal = () => {
+      window.OneSignal = window.OneSignal || [];
+      
+      // Inizializza OneSignal
+      window.OneSignal.push(function() {
+        window.OneSignal.init({
           appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
           allowLocalhostAsSecureOrigin: true,
         });
         
-        // Mostra il popup per abilitare le notifiche
-        OneSignal.showSlidedownPrompt();
+        // Mostra il prompt
+        window.OneSignal.showSlidedownPrompt();
         
         console.log('✅ OneSignal inizializzato');
         
-        // Opzionale: Gestisci i click sulle notifiche
-        OneSignal.on('notificationClick', function(event) {
+        // Gestisci click notifiche
+        window.OneSignal.on('notificationClick', function(event) {
           const buttonId = event.action;
           console.log('🔔 Notifica cliccata:', buttonId);
-          
-          // Esempio: se cliccano "conferma"
-          if (buttonId === 'conferma') {
-            console.log('✅ Utente ha confermato partecipazione');
-            // Qui poi aggiungerai la logica per il database
-          }
         });
-        
-      } catch (error) {
-        console.error('❌ Errore OneSignal:', error);
-      }
+      });
     };
 
     // Inizializza solo se l'App ID è presente
     if (import.meta.env.VITE_ONESIGNAL_APP_ID) {
-      initOneSignal();
+      loadOneSignal();
     } else {
       console.warn('⚠️ OneSignal App ID non configurato');
     }
