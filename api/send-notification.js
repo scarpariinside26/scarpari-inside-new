@@ -1,4 +1,5 @@
-export default async function handler(request, response) {
+// api/send-notification.js
+module.exports = async function handler(request, response) {
   // Permetti chiamate dal browser
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -12,7 +13,13 @@ export default async function handler(request, response) {
     try {
       const { title, message, url, buttons } = request.body;
 
-      console.log('📧 Invio notifica:', { title, message });
+      console.log('📧 Invio notifica a OneSignal...');
+
+      // Log per debug (NON in produzione)
+      console.log('🔍 Variabili ambiente:', {
+        hasAppId: !!process.env.ONESIGNAL_APP_ID,
+        hasApiKey: !!process.env.ONESIGNAL_REST_API_KEY
+      });
 
       const onesignalResponse = await fetch('https://api.onesignal.com/notifications', {
         method: 'POST',
@@ -32,6 +39,8 @@ export default async function handler(request, response) {
 
       const result = await onesignalResponse.json();
 
+      console.log('📨 Risposta OneSignal:', result);
+
       if (result.errors) {
         console.error('❌ Errore OneSignal:', result.errors);
         return response.status(400).json({
@@ -40,7 +49,7 @@ export default async function handler(request, response) {
         });
       }
 
-      console.log('✅ Notifica inviata:', result.id);
+      console.log('✅ Notifica inviata con ID:', result.id);
       response.status(200).json({
         success: true,
         message: 'Notifica inviata!',
@@ -51,10 +60,10 @@ export default async function handler(request, response) {
       console.error('❌ Errore API:', error);
       response.status(500).json({
         success: false,
-        error: 'Errore interno del server'
+        error: error.message
       });
     }
   } else {
     response.status(405).json({ error: 'Method not allowed' });
   }
-}
+};
