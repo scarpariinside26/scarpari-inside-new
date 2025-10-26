@@ -1,47 +1,55 @@
-// ✅ NUOVA VERSIONE CON NODEMAILER - ELIMINA LA VECCHIA!
-const nodemailer = require('nodemailer');
+// ✅ VERSIONE CORRETTA - NODEMAILER
+import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-  console.log('🚀 NUOVA API CON NODEMAILER - Inizio');
+  console.log('🚀 API Email - Richiesta ricevuta:', req.method);
   
-  res.setHeader('Content-Type', 'application/json');
+  // Configurazione CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   try {
-    console.log('🔍 Check nodemailer:', typeof nodemailer);
-    
-    // GET - Info API
+    // GET - Test API
     if (req.method === 'GET') {
       return res.status(200).json({
         success: true,
-        message: '✅ NUOVA API CON NODEMAILER - ONLINE',
-        nodemailer: typeof nodemailer !== 'undefined',
-        config: {
+        message: '✅ API Email - ONLINE',
+        timestamp: new Date().toISOString(),
+        nodemailer: true,
+        environment: {
           hasGmailUser: !!process.env.GMAIL_USER,
           hasGmailPass: !!process.env.GMAIL_APP_PASSWORD,
-          testMode: process.env.EMAIL_TEST_MODE === 'true'
+          nodeEnv: process.env.NODE_ENV
         }
       });
     }
 
-    // POST - Email REALE
+    // POST - Invia email
     if (req.method === 'POST') {
       const { evento, emailDestinatario } = req.body;
-      const isTestMode = process.env.EMAIL_TEST_MODE === 'true';
-      const emailFinale = isTestMode ? process.env.ADMIN_EMAIL : (emailDestinatario || 'test@example.com');
-
-      console.log('📧 NUOVA API - Invio email REALE a:', emailFinale);
-
-      // VERIFICA NODEMAILER
-      if (typeof nodemailer === 'undefined') {
-        throw new Error('NODEMAILER NON TROVATO');
+      
+      if (!evento || !evento.nome_evento) {
+        return res.status(400).json({
+          success: false,
+          error: 'Dati evento mancanti'
+        });
       }
 
-      const transporter = nodemailer.createTransport({
+      // Configura destinatario
+      const isTestMode = process.env.EMAIL_TEST_MODE === 'true';
+      const emailFinale = isTestMode 
+        ? (process.env.ADMIN_EMAIL || 'test@example.com') 
+        : (emailDestinatario || process.env.ADMIN_EMAIL);
+
+      console.log('📧 Preparazione email per:', emailFinale);
+
+      // Configura Nodemailer
+      const transporter = nodemailer.createTransporter({
         service: 'gmail',
         auth: {
           user: process.env.GMAIL_USER,
@@ -49,40 +57,48 @@ export default async function handler(req, res) {
         }
       });
 
-      // INVIO EMAIL REALE
+      // Invio email
       const info = await transporter.sendMail({
         from: `"Scarpari Inside" <${process.env.GMAIL_USER}>`,
         to: emailFinale,
-        subject: `🎉 NUOVA API - ${evento.nome_evento}`,
+        subject: `🎉 ${evento.nome_evento} - Scarpari Inside`,
         html: `
-          <h1>🎉 EMAIL REALE DA NUOVA API!</h1>
-          <p><strong>Evento:</strong> ${evento.nome_evento}</p>
-          <p><strong>Data:</strong> ${new Date().toLocaleString('it-IT')}</p>
-          <p style="color: green; font-weight: bold;">SE RICEVI QUESTA, LA NUOVA API FUNZIONA! 🚀</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #2c5aa0;">🎉 Scarpari Inside</h1>
+            <h2>${evento.nome_evento}</h2>
+            <p>Grazie per il tuo interesse!</p>
+            <p><strong>Data:</strong> ${new Date().toLocaleString('it-IT')}</p>
+            <hr style="margin: 20px 0;">
+            <p style="color: #666; font-size: 14px;">
+              Email inviata automaticamente dal sistema Scarpari Inside
+            </p>
+          </div>
         `
       });
 
-      console.log('✅ EMAIL REALE INVIATA! Message ID:', info.messageId);
+      console.log('✅ Email inviata con successo! ID:', info.messageId);
 
       return res.status(200).json({
         success: true,
-        simulated: false,
-        message: '✅ EMAIL REALE INVIATA DA NUOVA API',
+        message: 'Email inviata con successo',
         messageId: info.messageId,
         testMode: isTestMode,
-        details: {
-          evento: evento.nome_evento,
-          destinatario: emailFinale
-        }
+        destinatario: emailFinale
       });
     }
 
+    // Metodo non supportato
+    return res.status(405).json({
+      success: false,
+      error: 'Metodo non supportato'
+    });
+
   } catch (error) {
-    console.error('❌ Errore nuova API:', error);
+    console.error('❌ Errore API email:', error);
     return res.status(500).json({
       success: false,
       error: error.message,
-      simulated: true
+      details: 'Errore nell\'invio dell\'email'
     });
   }
 }
