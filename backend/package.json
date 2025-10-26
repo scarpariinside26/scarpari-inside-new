@@ -1,0 +1,15 @@
+{
+  "name": "scarpari-inside-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "nodemailer": "^6.9.4",
+    "dotenv": "^16.3.1"
+  }
+}
