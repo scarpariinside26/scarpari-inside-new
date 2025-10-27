@@ -6,58 +6,98 @@ import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 function HomePage() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
 
-  // TEST DIRETTO E SEMPLICE
-  const testOneSignalDirect = () => {
-    console.log('🎯 Test diretto OneSignal');
+  // TEST ONE SIGNAL - VERSIONE UNIVERSALE
+  const testOneSignalUniversal = () => {
+    console.log('🎯 Test OneSignal Universale');
     
-    // Controlla se OneSignal esiste
+    // Controlla tutti i possibili stati di OneSignal
     if (typeof window.OneSignal === 'undefined') {
       alert('❌ OneSignal NON è caricato nella pagina');
       return;
     }
     
-    if (!Array.isArray(window.OneSignal)) {
-      alert('❌ OneSignal non è un array');
-      return;
-    }
-    
-    // Prova l'inizializzazione diretta
-    window.OneSignal.push(function() {
-      if (typeof OneSignal === 'undefined') {
-        alert('❌ OneSignal interno non definito');
+    console.log('OneSignal trovato:', window.OneSignal);
+    console.log('Tipo:', typeof window.OneSignal);
+    console.log('È array:', Array.isArray(window.OneSignal));
+    console.log('È oggetto:', typeof window.OneSignal === 'object');
+    console.log('Ha init:', typeof window.OneSignal.init === 'function');
+
+    // PROVA TUTTI I METODI POSSIBILI
+    try {
+      // Metodo 1: Se è un oggetto con init
+      if (typeof window.OneSignal.init === 'function') {
+        console.log('🚀 Metodo 1: OneSignal come oggetto con init');
+        window.OneSignal.init({
+          appId: "35648a40-c681-40dd-8151-2db3867ee0fc"
+        }).then(() => {
+          console.log('✅ OneSignal inizializzato (oggetto)');
+          return window.OneSignal.showSlidedownPrompt();
+        }).then(() => {
+          alert('✅ Popup mostrato! (metodo oggetto)');
+        }).catch(error => {
+          console.error('❌ Errore metodo oggetto:', error);
+          alert('❌ Errore: ' + error.message);
+        });
         return;
       }
-      
-      // Inizializza
-      OneSignal.init({
-        appId: "35648a40-c681-40dd-8151-2db3867ee0fc"
-      }).then(() => {
-        alert('✅ OneSignal inizializzato!');
-        return OneSignal.showSlidedownPrompt();
-      }).then(() => {
-        alert('✅ Popup mostrato!');
-      }).catch(error => {
-        alert('❌ Errore: ' + error.message);
-      });
-    });
-    
-    alert('✅ Comando OneSignal inviato!');
+
+      // Metodo 2: Se è un array (pattern standard)
+      if (Array.isArray(window.OneSignal)) {
+        console.log('🚀 Metodo 2: OneSignal come array');
+        window.OneSignal.push(function() {
+          OneSignal.init({
+            appId: "35648a40-c681-40dd-8151-2db3867ee0fc"
+          }).then(() => {
+            console.log('✅ OneSignal inizializzato (array)');
+            return OneSignal.showSlidedownPrompt();
+          }).then(() => {
+            alert('✅ Popup mostrato! (metodo array)');
+          }).catch(error => {
+            console.error('❌ Errore metodo array:', error);
+            alert('❌ Errore: ' + error.message);
+          });
+        });
+        return;
+      }
+
+      // Metodo 3: Se è già inizializzato
+      if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
+        console.log('🚀 Metodo 3: OneSignal già inizializzato');
+        window.OneSignal.showSlidedownPrompt().then(() => {
+          alert('✅ Popup mostrato! (già inizializzato)');
+        }).catch(error => {
+          console.error('❌ Errore già inizializzato:', error);
+          alert('❌ Errore: ' + error.message);
+        });
+        return;
+      }
+
+      // Se nessun metodo funziona
+      alert('❌ OneSignal è caricato ma in uno stato sconosciuto:\n' + 
+            'Tipo: ' + typeof window.OneSignal + '\n' +
+            'Controlla la console per dettagli');
+            
+    } catch (error) {
+      console.error('💥 Errore generale:', error);
+      alert('💥 Errore generale: ' + error.message);
+    }
   };
 
-  // VERIFICA STATO ONESIGNAL
-  const checkOneSignal = () => {
-    console.log('🔍 Controllo stato OneSignal:');
-    console.log('- window.OneSignal:', window.OneSignal);
-    console.log('- Tipo:', typeof window.OneSignal);
-    console.log('- È array:', Array.isArray(window.OneSignal));
+  // VERIFICA DETTAGLIATA
+  const checkOneSignalDetailed = () => {
+    console.log('=== DEBUG DETTAGLIATO ONESIGNAL ===');
+    console.log('window.OneSignal:', window.OneSignal);
+    console.log('Tipo:', typeof window.OneSignal);
+    console.log('È array:', Array.isArray(window.OneSignal));
+    console.log('È oggetto:', typeof window.OneSignal === 'object');
     
-    if (typeof window.OneSignal === 'undefined') {
-      alert('❌ OneSignal NON è caricato');
-    } else if (Array.isArray(window.OneSignal)) {
-      alert('✅ OneSignal è caricato come array');
-    } else {
-      alert('⚠️ OneSignal è caricato ma non come array');
+    if (window.OneSignal) {
+      console.log('Proprietà disponibili:', Object.keys(window.OneSignal));
+      console.log('Ha init?', typeof window.OneSignal.init === 'function');
+      console.log('Ha showSlidedownPrompt?', typeof window.OneSignal.showSlidedownPrompt === 'function');
     }
+    
+    alert('✅ Controlla la console per i dettagli completi');
   };
 
   return (
@@ -73,21 +113,22 @@ function HomePage() {
       </header>
 
       <main className="main">
-        {/* SEZIONE TEST SEMPLIFICATA */}
+        {/* SEZIONE TEST MIGLIORATA */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ 
-            background: '#fff3cd', 
+            background: '#e7f3ff', 
             padding: '15px', 
             borderRadius: '8px',
-            marginBottom: '20px'
+            marginBottom: '20px',
+            border: '2px solid #007bff'
           }}>
-            <h3>🧪 Debug OneSignal</h3>
-            <p>Stato: {isOneSignalReady ? '✅ PRONTO' : '❌ NON CARICATO'}</p>
+            <h3>🔧 Debug OneSignal Avanzato</h3>
+            <p>OneSignal è caricato ma in stato sconosciuto</p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
             <button 
-              onClick={checkOneSignal}
+              onClick={checkOneSignalDetailed}
               style={{
                 padding: '12px 24px',
                 background: '#17a2b8',
@@ -100,11 +141,11 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔍 Verifica Caricamento OneSignal
+              🔍 Debug Dettagliato (Console)
             </button>
 
             <button 
-              onClick={testOneSignalDirect}
+              onClick={testOneSignalUniversal}
               style={{
                 padding: '12px 24px',
                 background: '#28a745',
@@ -117,7 +158,7 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🚀 Test OneSignal Diretto
+              🚀 Test Universale OneSignal
             </button>
           </div>
         </div>
