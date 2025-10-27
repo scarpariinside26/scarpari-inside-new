@@ -108,7 +108,37 @@ function HomePage() {
             🔔 Mostra Popup Notifiche
           </button>
 
-          <button 
+          // Nel tuo HomePage component, aggiungi questo bottone:
+<button 
+  onClick={() => {
+    if (window.OneSignal && Array.isArray(window.OneSignal)) {
+      window.OneSignal.push(function() {
+        OneSignal.showSlidedownPrompt().then(() => {
+          console.log('✅ Popup forzato con successo!');
+          alert('✅ Popup OneSignal mostrato!');
+        }).catch(error => {
+          console.error('❌ Errore popup:', error);
+          alert('❌ Errore: ' + error.message);
+        });
+      });
+    } else {
+      alert('❌ OneSignal non disponibile');
+    }
+  }}
+  style={{
+    padding: '12px 24px',
+    background: '#ff6b6b',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    margin: '5px'
+  }}
+>
+  🚨 FORZA POPUP ONESIGNAL
+</button><button 
             onClick={testNotification}
             style={{
               padding: '12px 24px',
@@ -181,31 +211,47 @@ function HomePage() {
 function App() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
 
-  useEffect(() => {
-    console.log('🚀 Initializing OneSignal...');
-    
-    // OneSignal deve essere usato come array
+useEffect(() => {
+  console.log('🚀 INIZIO INIZIALIZZAZIONE ONESIGNAL');
+
+  const initializeOneSignal = () => {
     window.OneSignal = window.OneSignal || [];
     
     window.OneSignal.push(function() {
+      console.log('🔍 OneSignal interno pronto');
+      
       OneSignal.init({
         appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
         allowLocalhostAsSecureOrigin: true,
       }).then(() => {
-        console.log('✅ OneSignal initialized successfully!');
+        console.log('✅ OneSignal.init() COMPLETATO');
         setIsOneSignalReady(true);
         
-        // Mostra il popup automaticamente
-        return OneSignal.showSlidedownPrompt();
-      }).then(() => {
-        console.log('✅ Popup shown!');
+        // Aspetta un po' e poi mostra il popup
+        setTimeout(() => {
+          console.log('🎯 Tentativo popup automatico...');
+          OneSignal.showSlidedownPrompt().then(() => {
+            console.log('✅ Popup automatico mostrato!');
+          }).catch(error => {
+            console.log('⚠️ Popup automatico fallito:', error);
+          });
+        }, 3000);
+        
       }).catch(error => {
-        console.error('❌ OneSignal error:', error);
+        console.error('💥 ERRORE OneSignal init:', error);
         setIsOneSignalReady(false);
       });
     });
+  };
 
-  }, []);
+  // Aspetta che la pagina sia completamente caricata
+  if (document.readyState === 'complete') {
+    initializeOneSignal();
+  } else {
+    window.addEventListener('load', initializeOneSignal);
+  }
+
+}, []);
 
   return (
     <div className="App">
