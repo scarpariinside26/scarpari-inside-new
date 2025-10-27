@@ -3,45 +3,66 @@ import { Routes, Route, Link } from 'react-router-dom';
 import './App.css';
 import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
+// FUNZIONE PER INVIARE NOTIFICHE
+const sendNotification = async (title, message, buttons = []) => {
+  if (!window.OneSignal) {
+    console.error('❌ OneSignal non disponibile');
+    return { success: false, error: 'OneSignal non inizializzato' };
+  }
+
+  try {
+    console.log('📧 Tentativo invio notifica...');
+    
+    // Metodo alternativo - per ora mostriamo un messaggio
+    console.log('✅ Notifica simulata:', { title, message, buttons });
+    
+    return { 
+      success: true, 
+      message: 'Notifica inviata (modalità simulata - verrà implementata dopo la configurazione)'
+    };
+    
+  } catch (error) {
+    console.error('❌ Errore invio notifica:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 function HomePage() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
 
-  // Test semplice - senza API complesse
-  const testOneSignal = () => {
-    if (window.OneSignal) {
-      alert('✅ OneSignal è caricato correttamente!\n\nOra puoi:\n• Inviare notifiche dalla Dashboard OneSignal\n• Gli utenti riceveranno le notifiche push\n• Il sistema è pronto!');
+  // TEST NOTIFICHE
+  const testNotification = async () => {
+    console.log('🧪 Test notifica...');
+    
+    const result = await sendNotification(
+      '🧪 Test Scarpari Inside!', 
+      'Questa è una notifica di test! 🎉', 
+      [
+        { id: "conferma", text: "✅ Funziona!" },
+        { id: "problema", text: "❌ Non funziona" }
+      ]
+    );
+    
+    if (result.success) {
+      alert('✅ ' + result.message);
     } else {
-      alert('❌ OneSignal non è ancora pronto. Ricarica la pagina.');
+      alert('❌ Errore: ' + result.error);
     }
   };
 
-  useEffect(() => {
-    // CARICAMENTO SEMPLIFICATO E SICURO
-    const script = document.createElement('script');
-    script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-    script.async = true;
-    
-    script.onload = () => {
-      console.log('✅ OneSignal script caricato');
-      
-      // Inizializzazione minima e sicura
-      window.OneSignal = window.OneSignal || [];
+  // TEST ONESIGNAL MANUALE
+  const testOneSignalManual = () => {
+    if (window.OneSignal && Array.isArray(window.OneSignal)) {
       window.OneSignal.push(function() {
-        window.OneSignal.init({
-          appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+        OneSignal.showSlidedownPrompt().then(() => {
+          console.log('✅ Popup mostrato manualmente');
+          alert('✅ Popup OneSignal mostrato!');
         });
       });
-      
-      // Aspetta un po' e poi segna come pronto
-      setTimeout(() => {
-        setIsOneSignalReady(true);
-        console.log('✅ OneSignal pronto per l\'uso');
-      }, 2000);
-    };
-    
-    document.head.appendChild(script);
-
-  }, []);
+    } else {
+      alert('❌ OneSignal non pronto');
+    }
+  };
 
   return (
     <div className="container">
@@ -56,10 +77,22 @@ function HomePage() {
       </header>
 
       <main className="main">
-        {/* BOTTONE SEMPLIFICATO */}
+        {/* SEZIONE TEST ONESIGNAL */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <div style={{ 
+            background: isOneSignalReady ? '#e8f5e8' : '#fff3cd', 
+            padding: '15px', 
+            borderRadius: '8px',
+            marginBottom: '20px'
+          }}>
+            <h3>🧪 Sistema Notifiche</h3>
+            <p style={{ color: isOneSignalReady ? 'green' : '#856404' }}>
+              {isOneSignalReady ? '✅ ONESIGNAL PRONTO' : '🔄 OneSignal in caricamento...'}
+            </p>
+          </div>
+
           <button 
-            onClick={testOneSignal}
+            onClick={testOneSignalManual}
             style={{
               padding: '12px 24px',
               background: '#2c5aa0',
@@ -68,21 +101,40 @@ function HomePage() {
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              margin: '5px'
             }}
           >
-            🧪 Verifica OneSignal
+            🔔 Mostra Popup Notifiche
           </button>
-          <p style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
-            Clicca per verificare se OneSignal è pronto
-          </p>
-          
+
+          <button 
+            onClick={testNotification}
+            style={{
+              padding: '12px 24px',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              margin: '5px'
+            }}
+          >
+            🧪 Test Notifica
+          </button>
+
+          {/* CODICE VERIFICA ONESIGNAL */}
           <div style={{ 
             fontSize: '12px', 
-            color: isOneSignalReady ? 'green' : 'orange',
-            marginTop: '10px'
+            color: '#666', 
+            marginTop: '15px',
+            padding: '10px',
+            background: '#f8f9fa',
+            borderRadius: '5px'
           }}>
-            {isOneSignalReady ? '✅ Sistema Notifiche PRONTO' : '🔄 Caricamento in corso...'}
+            <strong>Codice di verifica OneSignal:</strong> OS7K3L
           </div>
         </div>
 
@@ -127,6 +179,34 @@ function HomePage() {
 }
 
 function App() {
+  const [isOneSignalReady, setIsOneSignalReady] = useState(false);
+
+  useEffect(() => {
+    console.log('🚀 Initializing OneSignal...');
+    
+    // OneSignal deve essere usato come array
+    window.OneSignal = window.OneSignal || [];
+    
+    window.OneSignal.push(function() {
+      OneSignal.init({
+        appId: import.meta.env.VITE_ONESIGNAL_APP_ID,
+        allowLocalhostAsSecureOrigin: true,
+      }).then(() => {
+        console.log('✅ OneSignal initialized successfully!');
+        setIsOneSignalReady(true);
+        
+        // Mostra il popup automaticamente
+        return OneSignal.showSlidedownPrompt();
+      }).then(() => {
+        console.log('✅ Popup shown!');
+      }).catch(error => {
+        console.error('❌ OneSignal error:', error);
+        setIsOneSignalReady(false);
+      });
+    });
+
+  }, []);
+
   return (
     <div className="App">
       <Routes>
