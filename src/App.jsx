@@ -5,153 +5,184 @@ import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
 function HomePage() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
-  const [userSubscription, setUserSubscription] = useState(null);
+  const [debugInfo, setDebugInfo] = useState('');
+  const [browserInfo, setBrowserInfo] = useState('');
 
-  // INIZIALIZZA ONESIGNAL - METODO CORRETTO
-  const initializeOneSignal = async () => {
-    console.log('🚀 Inizializzazione OneSignal...');
+  // RILEVA BROWSER
+  useEffect(() => {
+    const detectBrowser = () => {
+      const userAgent = navigator.userAgent;
+      if (userAgent.includes('Chrome')) return 'Chrome';
+      if (userAgent.includes('Firefox')) return 'Firefox';
+      if (userAgent.includes('Safari')) return 'Safari';
+      if (userAgent.includes('Opera')) return 'Opera';
+      return 'Unknown';
+    };
     
-    // Controlla se OneSignal è caricato
+    setBrowserInfo(detectBrowser());
+  }, []);
+
+  // INIZIALIZZA ONESIGNAL - OTTIMIZZATA
+  const initializeOneSignal = () => {
+    console.log('🚀 Inizializzazione OneSignal per:', browserInfo);
+    setDebugInfo(`Inizializzazione per ${browserInfo}...`);
+
     if (typeof window.OneSignal === 'undefined') {
-      console.error('❌ OneSignal non trovato');
-      alert('❌ OneSignal non caricato. Controlla lo script nell\'HTML.');
+      const errorMsg = '❌ OneSignal non trovato. Ricarica la pagina.';
+      setDebugInfo(errorMsg);
+      alert(errorMsg);
       return;
     }
 
-    try {
-      // Inizializzazione corretta
-      await window.OneSignal.init({
-        appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
-        safari_web_id: "",
-        notifyButton: {
-          enable: true,
-        },
-        allowLocalhostAsSecureOrigin: true,
-        promptOptions: {
-          slidedown: {
-            enabled: true,
-            autoPrompt: false,
-            timeDelay: 3,
-            pageViews: 1,
-          }
+    // Configurazione specifica per Chrome
+    const config = {
+      appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
+      allowLocalhostAsSecureOrigin: true,
+      promptOptions: {
+        slidedown: {
+          enabled: true,
+          autoPrompt: false,
+          timeDelay: 1,
+          pageViews: 1,
         }
-      });
-      
-      console.log('✅ OneSignal inizializzata!');
+      }
+    };
+
+    window.OneSignal.init(config).then(() => {
+      console.log('✅ OneSignal inizializzata per', browserInfo);
+      setDebugInfo(`✅ Pronto per ${browserInfo}`);
       setIsOneSignalReady(true);
       
-      // Controlla lo stato della sottoscrizione
-      checkSubscriptionStatus();
-      
-      alert('✅ OneSignal inizializzata! Ora puoi mostrare il popup.');
-      
-    } catch (error) {
-      console.error('❌ Errore inizializzazione:', error);
-      alert('❌ Errore inizializzazione: ' + error.message);
-    }
+      // Per Chrome: controlla subito lo stato dei permessi
+      if (browserInfo === 'Chrome') {
+        checkNotificationPermission();
+      }
+    }).catch(error => {
+      console.error('❌ Errore:', error);
+      setDebugInfo('❌ Errore: ' + error.message);
+    });
   };
 
-  // CONTROLLA STATO SOTTOSCRIZIONE
-  const checkSubscriptionStatus = async () => {
-    if (!window.OneSignal) return;
-    
-    try {
-      const isSubscribed = await window.OneSignal.User.PushSubscription.optIn();
-      const permission = await window.OneSignal.User.PushSubscription.permission;
+  // CONTROLLA PERMESSI NOTIFICHE
+  const checkNotificationPermission = () => {
+    if ('Notification' in window) {
+      const permission = Notification.permission;
+      console.log('🔔 Permesso attuale:', permission);
+      setDebugInfo(prev => prev + ` | Permesso: ${permission}`);
       
-      setUserSubscription({
-        isSubscribed,
-        permission,
-        id: await window.OneSignal.User.PushSubscription.id
-      });
-      
-      console.log('📊 Stato sottoscrizione:', { isSubscribed, permission });
-    } catch (error) {
-      console.error('Errore controllo sottoscrizione:', error);
+      if (permission === 'denied') {
+        alert('🔕 Notifiche bloccate. Sbloccale nelle impostazioni Chrome.');
+      }
+      return permission;
     }
+    return 'not-supported';
   };
 
-  // MOSTRA POPUP NOTIFICHE - METODO CORRETTO 2024
+  // POPUP OTTIMIZZATO PER CHROME
   const showNotificationPopup = async () => {
     if (!isOneSignalReady) {
       alert('❌ Prima inizializza OneSignal');
       return;
     }
 
-    try {
-      console.log('🎯 Tentativo popup notifiche...');
-      
-      // METODO 1: Slidedown (più efficace)
-      if (window.OneSignal.Slidedown) {
-        console.log('🔹 Usando Slidedown');
-        await window.OneSignal.Slidedown.pushPrompt();
-        return;
-      }
-      
-      // METODO 2: Permessi nativi del browser
-      const permission = await Notification.requestPermission();
-      console.log('🔹 Permesso notifiche:', permission);
-      
-      if (permission === 'granted') {
-        alert('✅ Notifiche abilitate!');
-        checkSubscriptionStatus();
-      } else {
-        alert('❌ Notifiche non abilitate. Controlla le impostazioni del browser.');
-      }
-      
-    } catch (error) {
-      console.error('❌ Errore popup:', error);
-      alert('❌ Errore popup: ' + error.message);
-    }
-  };
+    console.log('🎯 Avvio popup per:', browserInfo);
+    setDebugInfo('Avvio popup...');
 
-  // REGISTRA AZIONE UTENTE PER TRIGGER AUTOMATICO
-  const registerUserAction = () => {
-    if (!window.OneSignal) return;
+    const currentPermission = checkNotificationPermission();
     
-    try {
-      // Questo può triggerare lo slidedown automatico
-      window.OneSignal.User.addTrigger('prompt_interaction', 'clicked');
-      console.log('✅ Azione utente registrata');
-    } catch (error) {
-      console.log('⚠️ Trigger non disponibile');
+    // Se già bloccato, mostra alert
+    if (currentPermission === 'denied') {
+      alert('🚫 Notifiche bloccate! Vai in Impostazioni Chrome → Site Settings → Notifications per sbloccare.');
+      return;
     }
-  };
 
-  // INIZIALIZZAZIONE AUTOMATICA AL CARICAMENTO
-  useEffect(() => {
-    const initOneSignal = async () => {
-      // Aspetta che OneSignal sia completamente caricato
-      if (typeof window.OneSignal === 'undefined') {
-        console.log('⏳ OneSignal non ancora caricato, riprovo...');
-        setTimeout(initOneSignal, 1000);
-        return;
-      }
-
-      try {
-        await window.OneSignal.init({
-          appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
-          allowLocalhostAsSecureOrigin: true,
-          promptOptions: {
-            slidedown: {
-              enabled: true,
-              autoPrompt: false, // Disabilita auto-popup, lo controlliamo noi
-            }
-          }
+    try {
+      // PRIMO METODO: Slidedown (migliore per Chrome)
+      if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
+        console.log('🔹 Tentativo Slidedown su Chrome');
+        
+        const result = await window.OneSignal.showSlidedownPrompt({
+          force: true
         });
         
-        setIsOneSignalReady(true);
-        checkSubscriptionStatus();
-        console.log('✅ OneSignal auto-inizializzata');
+        console.log('✅ Risultato Slidedown:', result);
+        setDebugInfo('✅ Popup slidedown mostrato');
+        return;
+      }
+
+      // SECONDO METODO: Notifications API di OneSignal
+      if (window.OneSignal.Notifications) {
+        console.log('🔹 Tentativo Notifications API');
         
-      } catch (error) {
-        console.log('⚠️ OneSignal già inizializzata:', error.message);
+        const permission = await window.OneSignal.Notifications.requestPermission();
+        console.log('🔔 Risultato permesso:', permission);
+        setDebugInfo(`Permesso: ${permission}`);
+        
+        if (permission === 'granted') {
+          alert('🎉 Notifiche abilitate! Ora riceverai aggiornamenti sugli eventi.');
+        } else if (permission === 'default') {
+          setDebugInfo('⚠️ Popup chiuso senza decidere');
+          alert('Hai chiuso il popup. Clicca di nuovo per abilitare le notifiche.');
+        }
+        return;
+      }
+
+      // TERZO METODO: API nativa come fallback
+      if ('Notification' in window && Notification.permission === 'default') {
+        console.log('🔹 Tentativo API nativa');
+        
+        const permission = await Notification.requestPermission();
+        console.log('🔔 Permesso API nativa:', permission);
+        
+        if (permission === 'granted' && window.OneSignal) {
+          // Registra con OneSignal dopo il permesso
+          window.OneSignal.registerForPushNotifications();
+          alert('🎉 Notifiche abilitate!');
+        }
+        setDebugInfo(`API nativa: ${permission}`);
+        return;
+      }
+
+      setDebugInfo('❌ Nessun metodo disponibile');
+      alert('❌ Impossibile mostrare il popup. Prova con un altro browser.');
+
+    } catch (error) {
+      console.error('❌ Errore popup:', error);
+      setDebugInfo('❌ Errore: ' + error.message);
+      
+      // Fallback estremo
+      if (confirm('Popup fallito. Vuoi provare con il metodo nativo del browser?')) {
+        Notification.requestPermission();
+      }
+    }
+  };
+
+  // DEBUG
+  const debugOneSignal = () => {
+    console.log('=== DEBUG BROWSER ===');
+    console.log('Browser:', browserInfo);
+    console.log('UserAgent:', navigator.userAgent);
+    console.log('Notification API:', 'Notification' in window);
+    console.log('Notification.permission:', Notification.permission);
+    
+    if (window.OneSignal) {
+      console.log('OneSignal caricato:', true);
+      console.log('Metodi:', Object.keys(window.OneSignal).filter(k => typeof window.OneSignal[k] === 'function'));
+    }
+    
+    setDebugInfo(`Browser: ${browserInfo} | Permesso: ${Notification.permission}`);
+  };
+
+  // AUTO-INIT
+  useEffect(() => {
+    const init = () => {
+      if (typeof window.OneSignal !== 'undefined' && !window.OneSignal.initialized) {
+        initializeOneSignal();
       }
     };
-
-    // Prova dopo 2 secondi per dare tempo allo script di caricare
-    setTimeout(initOneSignal, 2000);
-  }, []);
+    
+    setTimeout(init, 2000);
+  }, [browserInfo]);
 
   return (
     <div className="container">
@@ -166,29 +197,32 @@ function HomePage() {
       </header>
 
       <main className="main">
-        {/* SEZIONE ONESIGNAL MIGLIORATA */}
+        {/* SEZIONE ONESIGNAL CON INFO BROWSER */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ 
-            background: isOneSignalReady ? '#e8f5e8' : '#fff3cd', 
+            background: browserInfo === 'Chrome' ? '#fff3e0' : 
+                       browserInfo === 'Opera' ? '#e8f5e8' : '#f0f0f0',
             padding: '15px', 
             borderRadius: '8px',
             marginBottom: '20px',
             border: isOneSignalReady ? '2px solid green' : '2px solid orange'
           }}>
-            <h3>🔔 Sistema Notifiche OneSignal</h3>
+            <h3>🔔 Notifiche - {browserInfo}</h3>
             <p style={{ 
               color: isOneSignalReady ? 'green' : '#856404',
               fontWeight: 'bold',
-              fontSize: '16px'
+              fontSize: '16px',
+              marginBottom: '10px'
             }}>
-              {isOneSignalReady ? '✅ SDK PRONTO' : '🔄 SDK IN CARICAMENTO'}
+              {isOneSignalReady ? '✅ PRONTO' : '🔄 INIZIALIZZAZIONE'}
             </p>
-            
-            {userSubscription && (
-              <div style={{ marginTop: '10px', fontSize: '14px' }}>
-                <p>📊 Stato: <strong>{userSubscription.isSubscribed ? 'ISCRITTO' : 'NON ISCRITTO'}</strong></p>
-                <p>🔐 Permesso: <strong>{userSubscription.permission}</strong></p>
-              </div>
+            <p style={{ fontSize: '14px', color: '#666', fontFamily: 'monospace' }}>
+              {debugInfo || `Browser: ${browserInfo} | Clicca Debug per info`}
+            </p>
+            {browserInfo === 'Chrome' && (
+              <p style={{ fontSize: '12px', color: '#e65100', marginTop: '8px' }}>
+                ⚠️ Chrome richiede click utente e HTTPS
+              </p>
             )}
           </div>
 
@@ -225,14 +259,14 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔔 Richiedi Notifiche
+              {browserInfo === 'Chrome' ? '🔔 Popup Chrome' : '🔔 Richiedi Notifiche'}
             </button>
 
             <button 
-              onClick={registerUserAction}
+              onClick={debugOneSignal}
               style={{
                 padding: '10px 20px',
-                background: '#17a2b8',
+                background: '#6c757d',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -241,25 +275,18 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🎯 Registra Azione Utente
+              🔍 Debug {browserInfo}
             </button>
           </div>
         </div>
 
-        {/* MENU PRINCIPALE - invariato */}
+        {/* RESTANTE CODICE INVARIATO */}
         <div className="menu-grid">
-          <Link to="/eventi" className="menu-btn" onClick={registerUserAction}>
+          <Link to="/eventi" className="menu-btn">
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
             <span className="desc">Gestione eventi e generazione squadre</span>
           </Link>
-
-          <Link to="/eventi" className="menu-btn" onClick={registerUserAction}>
-            <span className="icon">👥</span>
-            <span className="text">GENERA SQUADRE</span>
-            <span className="desc">Crea squadre bilanciate per le partite</span>
-          </Link>
-
           {/* ... altri menu items ... */}
         </div>
       </main>
@@ -267,13 +294,14 @@ function HomePage() {
       <footer className="footer">
         <p>- proudly made with rabbia in Veneto -</p>
         <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-          OneSignal App ID: 35648a40-c681-40dd-8151-2db3867ee0fc
+          Browser: {browserInfo} | OneSignal: {isOneSignalReady ? 'Pronto' : 'In attesa'}
         </p>
       </footer>
     </div>
   );
 }
 
+// App component rimane invariato
 function App() {
   return (
     <div className="App">
