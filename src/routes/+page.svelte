@@ -1,6 +1,5 @@
-<script>
   import { page } from '$app/stores'
-  import EventList from '$components/events/EventList.svelte'
+  import EventList from '../../components/events/EventList.svelte'
   
   export let data
   
