@@ -18,7 +18,12 @@ export const database = {
   },
   
   async addGiocatore(giocatore) {
-    return db.insert(schema.giocatori).values(giocatore).run();
+    const result = await db.insert(schema.giocatori).values(giocatore).returning();
+    return result[0];
+  },
+  
+  async deleteGiocatore(id) {
+    await db.delete(schema.giocatori).where(eq(schema.giocatori.id, id)).run();
   },
   
   // Eventi
@@ -27,6 +32,11 @@ export const database = {
   },
   
   async addEvento(evento) {
-    return db.insert(schema.eventi).values(evento).run();
+    const result = await db.insert(schema.eventi).values(evento).returning();
+    return result[0];
+  },
+  
+  async deleteEvento(id) {
+    await db.delete(schema.eventi).where(eq(schema.eventi.id, id)).run();
   }
 };
