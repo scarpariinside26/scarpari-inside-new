@@ -1,4 +1,5 @@
   import { page } from '$app/stores'
+ <script>
   import EventList from '../../components/events/EventList.svelte'
   
   export let data
@@ -9,7 +10,6 @@
     { id: 'prossima-settimana', label: 'La prossima settimana' },
     { id: 'novembre', label: '10 - 16 novembre' }
   ]
-  
   // Filtra eventi in base al tab selezionato
   $: filteredEvents = data.events?.filter(event => {
     const eventDate = new Date(event.event_date)
