@@ -1,4 +1,3 @@
-<!-- SOSTITUISCI il tuo file home esistente: src/routes/+page.svelte -->
 <script>
   import { page } from '$app/stores'
   import EventList from '$components/events/EventList.svelte'
