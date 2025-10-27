@@ -7,8 +7,9 @@ function HomePage() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
   const [browserInfo, setBrowserInfo] = useState('');
+  const [notificationStatus, setNotificationStatus] = useState('');
 
-  // RILEVA BROWSER
+  // RILEVA BROWSER E STATO NOTIFICHE
   useEffect(() => {
     const detectBrowser = () => {
       const userAgent = navigator.userAgent;
@@ -19,10 +20,16 @@ function HomePage() {
       return 'Unknown';
     };
     
-    setBrowserInfo(detectBrowser());
+    const browser = detectBrowser();
+    setBrowserInfo(browser);
+    
+    // Controlla stato notifiche
+    if ('Notification' in window) {
+      setNotificationStatus(Notification.permission);
+    }
   }, []);
 
-  // INIZIALIZZA ONESIGNAL - OTTIMIZZATA
+  // INIZIALIZZA ONESIGNAL - CON CONTROLLO SE GIA' INIZIALIZZATA
   const initializeOneSignal = () => {
     console.log('🚀 Inizializzazione OneSignal per:', browserInfo);
     setDebugInfo(`Inizializzazione per ${browserInfo}...`);
@@ -34,7 +41,15 @@ function HomePage() {
       return;
     }
 
-    // Configurazione specifica per Chrome
+    // Se già inizializzata, non reinizializzare
+    if (window.OneSignal.initialized) {
+      console.log('✅ OneSignal già inizializzata');
+      setDebugInfo('✅ Già inizializzata');
+      setIsOneSignalReady(true);
+      return;
+    }
+
+    // Configurazione per Chrome e altri browser
     const config = {
       appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
       allowLocalhostAsSecureOrigin: true,
@@ -42,8 +57,6 @@ function HomePage() {
         slidedown: {
           enabled: true,
           autoPrompt: false,
-          timeDelay: 1,
-          pageViews: 1,
         }
       }
     };
@@ -52,14 +65,16 @@ function HomePage() {
       console.log('✅ OneSignal inizializzata per', browserInfo);
       setDebugInfo(`✅ Pronto per ${browserInfo}`);
       setIsOneSignalReady(true);
-      
-      // Per Chrome: controlla subito lo stato dei permessi
-      if (browserInfo === 'Chrome') {
-        checkNotificationPermission();
-      }
     }).catch(error => {
-      console.error('❌ Errore:', error);
-      setDebugInfo('❌ Errore: ' + error.message);
+      // Se è già inizializzata, considera comunque pronto
+      if (error.message.includes('already initialized')) {
+        console.log('✅ OneSignal già inizializzata');
+        setDebugInfo('✅ Già inizializzata');
+        setIsOneSignalReady(true);
+      } else {
+        console.error('❌ Errore:', error);
+        setDebugInfo('❌ Errore: ' + error.message);
+      }
     });
   };
 
@@ -67,18 +82,40 @@ function HomePage() {
   const checkNotificationPermission = () => {
     if ('Notification' in window) {
       const permission = Notification.permission;
+      setNotificationStatus(permission);
       console.log('🔔 Permesso attuale:', permission);
-      setDebugInfo(prev => prev + ` | Permesso: ${permission}`);
-      
-      if (permission === 'denied') {
-        alert('🔕 Notifiche bloccate. Sbloccale nelle impostazioni Chrome.');
-      }
       return permission;
     }
     return 'not-supported';
   };
 
-  // POPUP OTTIMIZZATO PER CHROME
+  // ISTRUZIONI DETTAGLIATE PER SBLOCCO CHROME
+  const showChromeUnblockInstructions = () => {
+    const instructions = `
+🎯 ISTRUZIONI SBLOCCO NOTIFICHE CHROME:
+
+1. 🔒 CERCA l'icona nella barra degli indirizzi:
+   - Se vedi 🚫 = Bloccate
+   - Se vedi 🔒 = Impostazioni
+
+2. 📍 CLICCA sull'icona (🔒 o 🚫)
+
+3. ⚙️ CERCA "Notifiche" nella lista
+
+4. ✅ CAMBIA da "Blocca" a "Consenti"
+
+5. 🔄 RICARICA la pagina (F5 o Ctrl+R)
+
+6. 🎉 CLICCA di nuovo su "Richiedi Notifiche"
+
+💡 CONSIGLIO: Usa una finestra di navigazione anonima (Ctrl+Shift+N) per testare più facilmente!
+    `;
+    
+    alert(instructions);
+    setDebugInfo('📋 Istruzioni sblocco mostrate');
+  };
+
+  // POPUP OTTIMIZZATO PER CHROME CON GESTIONE BLOCCCHI
   const showNotificationPopup = async () => {
     if (!isOneSignalReady) {
       alert('❌ Prima inizializza OneSignal');
@@ -89,100 +126,157 @@ function HomePage() {
     setDebugInfo('Avvio popup...');
 
     const currentPermission = checkNotificationPermission();
-    
-    // Se già bloccato, mostra alert
+    console.log('🔔 Permesso corrente:', currentPermission);
+
+    // SE LE NOTIFICHE SONO BLOCCATE
     if (currentPermission === 'denied') {
-      alert('🚫 Notifiche bloccate! Vai in Impostazioni Chrome → Site Settings → Notifications per sbloccare.');
+      setDebugInfo('❌ Notifiche BLOCCATE in Chrome');
+      
+      const shouldUnblock = confirm(
+        '🚫 Chrome ha bloccato le notifiche per questo sito.\n\n' +
+        'Per sbloccare:\n' +
+        '1. Clicca sull\'icona 🔒 nella barra degli indirizzi\n' +
+        '2. Clicca "Impostazioni sito"\n' +
+        '3. Imposta "Notifiche" su "Consenti"\n' +
+        '4. Ricarica la pagina\n\n' +
+        'Vuoi che ti mostri le istruzioni dettagliate?'
+      );
+      
+      if (shouldUnblock) {
+        showChromeUnblockInstructions();
+      }
       return;
     }
 
-    try {
-      // PRIMO METODO: Slidedown (migliore per Chrome)
-      if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
-        console.log('🔹 Tentativo Slidedown su Chrome');
+    // SE L'UTENTE NON HA ANCORA DECISO
+    if (currentPermission === 'default') {
+      try {
+        console.log('🔹 Tentativo con OneSignal...');
         
-        const result = await window.OneSignal.showSlidedownPrompt({
-          force: true
-        });
-        
-        console.log('✅ Risultato Slidedown:', result);
-        setDebugInfo('✅ Popup slidedown mostrato');
-        return;
-      }
-
-      // SECONDO METODO: Notifications API di OneSignal
-      if (window.OneSignal.Notifications) {
-        console.log('🔹 Tentativo Notifications API');
-        
-        const permission = await window.OneSignal.Notifications.requestPermission();
-        console.log('🔔 Risultato permesso:', permission);
-        setDebugInfo(`Permesso: ${permission}`);
-        
-        if (permission === 'granted') {
-          alert('🎉 Notifiche abilitate! Ora riceverai aggiornamenti sugli eventi.');
-        } else if (permission === 'default') {
-          setDebugInfo('⚠️ Popup chiuso senza decidere');
-          alert('Hai chiuso il popup. Clicca di nuovo per abilitare le notifiche.');
+        // PRIMA PROVA: Slidedown di OneSignal
+        if (typeof window.OneSignal.showSlidedownPrompt === 'function') {
+          await window.OneSignal.showSlidedownPrompt({ force: true });
+          setDebugInfo('✅ Popup OneSignal mostrato');
+          checkNotificationPermission(); // Aggiorna stato
+          return;
         }
-        return;
-      }
 
-      // TERZO METODO: API nativa come fallback
-      if ('Notification' in window && Notification.permission === 'default') {
-        console.log('🔹 Tentativo API nativa');
-        
-        const permission = await Notification.requestPermission();
-        console.log('🔔 Permesso API nativa:', permission);
-        
-        if (permission === 'granted' && window.OneSignal) {
-          // Registra con OneSignal dopo il permesso
-          window.OneSignal.registerForPushNotifications();
-          alert('🎉 Notifiche abilitate!');
+        // SECONDA PROVA: Notifications API di OneSignal
+        if (window.OneSignal.Notifications && typeof window.OneSignal.Notifications.requestPermission === 'function') {
+          const permission = await window.OneSignal.Notifications.requestPermission();
+          console.log('🔔 Risultato OneSignal:', permission);
+          setDebugInfo(`OneSignal: ${permission}`);
+          checkNotificationPermission();
+          
+          if (permission === true) {
+            alert('🎉 Notifiche abilitate con OneSignal!');
+          }
+          return;
         }
-        setDebugInfo(`API nativa: ${permission}`);
-        return;
-      }
 
-      setDebugInfo('❌ Nessun metodo disponibile');
-      alert('❌ Impossibile mostrare il popup. Prova con un altro browser.');
+        // TERZA PROVA: API nativa del browser
+        if ('Notification' in window) {
+          const permission = await Notification.requestPermission();
+          console.log('🔔 Risultato API nativa:', permission);
+          setDebugInfo(`API nativa: ${permission}`);
+          setNotificationStatus(permission);
+          
+          if (permission === 'granted') {
+            alert('🎉 Notifiche abilitate!');
+            // Sincronizza con OneSignal se possibile
+            if (window.OneSignal && window.OneSignal.setSubscription) {
+              window.OneSignal.setSubscription(true);
+            }
+          } else if (permission === 'default') {
+            setDebugInfo('⚠️ Popup chiuso senza decidere');
+          }
+          return;
+        }
 
-    } catch (error) {
-      console.error('❌ Errore popup:', error);
-      setDebugInfo('❌ Errore: ' + error.message);
-      
-      // Fallback estremo
-      if (confirm('Popup fallito. Vuoi provare con il metodo nativo del browser?')) {
-        Notification.requestPermission();
+        setDebugInfo('❌ Nessun metodo disponibile');
+
+      } catch (error) {
+        console.error('❌ Errore popup:', error);
+        setDebugInfo('❌ Errore: ' + error.message);
       }
+    } 
+    // SE LE NOTIFICHE SONO GIA' ABILITATE
+    else if (currentPermission === 'granted') {
+      setDebugInfo('✅ Notifiche già abilitate!');
+      alert('🔔 Notifiche già abilitate per questo sito!');
     }
   };
 
-  // DEBUG
+  // DEBUG COMPLETO
   const debugOneSignal = () => {
-    console.log('=== DEBUG BROWSER ===');
+    console.log('=== DEBUG COMPLETO ===');
     console.log('Browser:', browserInfo);
     console.log('UserAgent:', navigator.userAgent);
     console.log('Notification API:', 'Notification' in window);
     console.log('Notification.permission:', Notification.permission);
+    console.log('OneSignal caricato:', !!window.OneSignal);
     
     if (window.OneSignal) {
-      console.log('OneSignal caricato:', true);
-      console.log('Metodi:', Object.keys(window.OneSignal).filter(k => typeof window.OneSignal[k] === 'function'));
+      console.log('OneSignal.initialized:', window.OneSignal.initialized);
+      console.log('Metodi disponibili:', Object.keys(window.OneSignal).filter(k => typeof window.OneSignal[k] === 'function'));
+    }
+
+    // Messaggio di stato per l'utente
+    let statusMessage = '';
+    if (Notification.permission === 'denied') {
+      statusMessage = '❌ BLOCCATO - Usa "Istruzioni Sblocco"';
+    } else if (Notification.permission === 'granted') {
+      statusMessage = '✅ ABILITATO';
+    } else {
+      statusMessage = '🔄 IN ATTESA - Clicca "Richiedi Notifiche"';
     }
     
-    setDebugInfo(`Browser: ${browserInfo} | Permesso: ${Notification.permission}`);
+    setDebugInfo(`${browserInfo}: ${Notification.permission} - ${statusMessage}`);
   };
 
-  // AUTO-INIT
+  // RESETTA STATO NOTIFICHE (per testing)
+  const resetNotificationTest = () => {
+    if (confirm('Vuoi resettare lo stato delle notifiche per testing?\n\nApri una nuova finestra anonima per testare più facilmente.')) {
+      setDebugInfo('🔄 Reset per testing - Usa finestra anonima');
+      setNotificationStatus('default');
+    }
+  };
+
+  // AUTO-INIT AL CARICAMENTO
   useEffect(() => {
-    const init = () => {
-      if (typeof window.OneSignal !== 'undefined' && !window.OneSignal.initialized) {
-        initializeOneSignal();
+    const initOneSignal = () => {
+      if (typeof window.OneSignal !== 'undefined') {
+        // Se non è già inizializzata, inizializza
+        if (!window.OneSignal.initialized) {
+          initializeOneSignal();
+        } else {
+          console.log('✅ OneSignal già inizializzata al caricamento');
+          setIsOneSignalReady(true);
+          setDebugInfo('✅ Auto-inizializzata');
+        }
+      } else {
+        console.log('⏳ OneSignal non ancora caricato, riprovo...');
+        setTimeout(initOneSignal, 1000);
       }
     };
-    
-    setTimeout(init, 2000);
+
+    // Aspetta che lo script sia caricato
+    setTimeout(initOneSignal, 1500);
   }, [browserInfo]);
+
+  // Colore del badge in base allo stato
+  const getStatusColor = () => {
+    if (notificationStatus === 'denied') return '#ff4444';
+    if (notificationStatus === 'granted') return '#28a745';
+    return '#ffc107';
+  };
+
+  // Testo dello stato
+  const getStatusText = () => {
+    if (notificationStatus === 'denied') return 'BLOCCATE';
+    if (notificationStatus === 'granted') return 'ABILITATE';
+    return 'DA DECIDERE';
+  };
 
   return (
     <div className="container">
@@ -197,33 +291,41 @@ function HomePage() {
       </header>
 
       <main className="main">
-        {/* SEZIONE ONESIGNAL CON INFO BROWSER */}
+        {/* SEZIONE ONESIGNAL CON STATO VISIVO */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ 
-            background: browserInfo === 'Chrome' ? '#fff3e0' : 
-                       browserInfo === 'Opera' ? '#e8f5e8' : '#f0f0f0',
+            background: notificationStatus === 'denied' ? '#ffeaea' : 
+                       notificationStatus === 'granted' ? '#e8f5e8' : '#fff3cd',
             padding: '15px', 
             borderRadius: '8px',
             marginBottom: '20px',
-            border: isOneSignalReady ? '2px solid green' : '2px solid orange'
+            border: `2px solid ${getStatusColor()}`
           }}>
-            <h3>🔔 Notifiche - {browserInfo}</h3>
+            <h3>🔔 Sistema Notifiche - {browserInfo}</h3>
+            <div style={{ 
+              display: 'inline-block',
+              background: getStatusColor(),
+              color: 'white',
+              padding: '4px 12px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              margin: '10px 0'
+            }}>
+              {getStatusText()}
+            </div>
             <p style={{ 
-              color: isOneSignalReady ? 'green' : '#856404',
+              color: notificationStatus === 'denied' ? '#d32f2f' : 
+                     notificationStatus === 'granted' ? 'green' : '#856404',
               fontWeight: 'bold',
               fontSize: '16px',
               marginBottom: '10px'
             }}>
-              {isOneSignalReady ? '✅ PRONTO' : '🔄 INIZIALIZZAZIONE'}
+              {isOneSignalReady ? '✅ SDK PRONTO' : '🔄 SDK IN CARICAMENTO'}
             </p>
-            <p style={{ fontSize: '14px', color: '#666', fontFamily: 'monospace' }}>
-              {debugInfo || `Browser: ${browserInfo} | Clicca Debug per info`}
+            <p style={{ fontSize: '14px', color: '#666', fontFamily: 'monospace', minHeight: '20px' }}>
+              {debugInfo || `Stato: ${notificationStatus || 'checking...'}`}
             </p>
-            {browserInfo === 'Chrome' && (
-              <p style={{ fontSize: '12px', color: '#e65100', marginTop: '8px' }}>
-                ⚠️ Chrome richiede click utente e HTTPS
-              </p>
-            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
@@ -241,26 +343,46 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔧 Inizializza OneSignal
+              🔧 1. Inizializza OneSignal
             </button>
 
             <button 
               onClick={showNotificationPopup}
-              disabled={!isOneSignalReady}
+              disabled={!isOneSignalReady || notificationStatus === 'denied'}
               style={{
                 padding: '12px 24px',
-                background: isOneSignalReady ? '#007bff' : '#6c757d',
+                background: !isOneSignalReady ? '#6c757d' : 
+                           notificationStatus === 'denied' ? '#ff6b6b' : '#007bff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: isOneSignalReady ? 'pointer' : 'not-allowed',
+                cursor: (isOneSignalReady && notificationStatus !== 'denied') ? 'pointer' : 'not-allowed',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 width: '300px'
               }}
             >
-              {browserInfo === 'Chrome' ? '🔔 Popup Chrome' : '🔔 Richiedi Notifiche'}
+              {notificationStatus === 'denied' ? '🚫 Notifiche Bloccate' : '🔔 2. Richiedi Notifiche'}
             </button>
+
+            {notificationStatus === 'denied' && (
+              <button 
+                onClick={showChromeUnblockInstructions}
+                style={{
+                  padding: '12px 24px',
+                  background: '#ff6b35',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  width: '300px'
+                }}
+              >
+                🔧 Istruzioni Sblocco Chrome
+              </button>
+            )}
 
             <button 
               onClick={debugOneSignal}
@@ -275,33 +397,71 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔍 Debug {browserInfo}
+              🔍 3. Debug Completo
+            </button>
+
+            <button 
+              onClick={resetNotificationTest}
+              style={{
+                padding: '8px 16px',
+                background: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                width: '300px'
+              }}
+            >
+              🔄 Reset Test (Finestra Anonima)
             </button>
           </div>
         </div>
 
-        {/* RESTANTE CODICE INVARIATO */}
+        {/* MENU PRINCIPALE */}
         <div className="menu-grid">
           <Link to="/eventi" className="menu-btn">
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
             <span className="desc">Gestione eventi e generazione squadre</span>
           </Link>
-          {/* ... altri menu items ... */}
+
+          <Link to="/eventi" className="menu-btn">
+            <span className="icon">👥</span>
+            <span className="text">GENERA SQUADRE</span>
+            <span className="desc">Crea squadre bilanciate per le partite</span>
+          </Link>
+
+          <Link to="/" className="menu-btn">
+            <span className="icon">📊</span>
+            <span className="text">SCARPAROMETRO</span>
+            <span className="desc">Classifica e statistiche giocatori</span>
+          </Link>
+
+          <Link to="/" className="menu-btn">
+            <span className="icon">👤</span>
+            <span className="text">IL MIO PROFILO</span>
+            <span className="desc">Profilo personale e statistiche</span>
+          </Link>
+
+          <Link to="/" className="menu-btn">
+            <span className="icon">⚙️</span>
+            <span className="text">IMPOSTAZIONI</span>
+            <span className="desc">Configurazione sistema</span>
+          </Link>
         </div>
       </main>
 
       <footer className="footer">
         <p>- proudly made with rabbia in Veneto -</p>
         <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-          Browser: {browserInfo} | OneSignal: {isOneSignalReady ? 'Pronto' : 'In attesa'}
+          Browser: {browserInfo} | Notifiche: {notificationStatus} | OneSignal: {isOneSignalReady ? '✅' : '🔄'}
         </p>
       </footer>
     </div>
   );
 }
 
-// App component rimane invariato
 function App() {
   return (
     <div className="App">
