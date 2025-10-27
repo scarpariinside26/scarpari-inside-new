@@ -1,4 +1,3 @@
-<!-- CREA: src/components/events/EventCard.svelte -->
 <script>
   export let event
   
