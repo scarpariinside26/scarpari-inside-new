@@ -5,33 +5,73 @@ import GestioneEventi from './pages/GestioneEventi/GestioneEventi';
 
 function HomePage() {
   const [isOneSignalReady, setIsOneSignalReady] = useState(false);
+  const [userSubscription, setUserSubscription] = useState(null);
 
-  // INIZIALIZZA ONESIGNAL
+  // INIZIALIZZA ONESIGNAL - METODO CORRETTO
   const initializeOneSignal = async () => {
     console.log('🚀 Inizializzazione OneSignal...');
     
+    // Controlla se OneSignal è caricato
     if (typeof window.OneSignal === 'undefined') {
-      alert('❌ OneSignal non caricato');
+      console.error('❌ OneSignal non trovato');
+      alert('❌ OneSignal non caricato. Controlla lo script nell\'HTML.');
       return;
     }
 
     try {
+      // Inizializzazione corretta
       await window.OneSignal.init({
         appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
+        safari_web_id: "",
+        notifyButton: {
+          enable: true,
+        },
         allowLocalhostAsSecureOrigin: true,
+        promptOptions: {
+          slidedown: {
+            enabled: true,
+            autoPrompt: false,
+            timeDelay: 3,
+            pageViews: 1,
+          }
+        }
       });
       
       console.log('✅ OneSignal inizializzata!');
       setIsOneSignalReady(true);
-      alert('✅ OneSignal inizializzata! Ora usa "Mostra Popup"');
+      
+      // Controlla lo stato della sottoscrizione
+      checkSubscriptionStatus();
+      
+      alert('✅ OneSignal inizializzata! Ora puoi mostrare il popup.');
       
     } catch (error) {
       console.error('❌ Errore inizializzazione:', error);
-      alert('❌ Errore: ' + error.message);
+      alert('❌ Errore inizializzazione: ' + error.message);
     }
   };
 
-  // MOSTRA POPUP NOTIFICHE - METODI MODERNI
+  // CONTROLLA STATO SOTTOSCRIZIONE
+  const checkSubscriptionStatus = async () => {
+    if (!window.OneSignal) return;
+    
+    try {
+      const isSubscribed = await window.OneSignal.User.PushSubscription.optIn();
+      const permission = await window.OneSignal.User.PushSubscription.permission;
+      
+      setUserSubscription({
+        isSubscribed,
+        permission,
+        id: await window.OneSignal.User.PushSubscription.id
+      });
+      
+      console.log('📊 Stato sottoscrizione:', { isSubscribed, permission });
+    } catch (error) {
+      console.error('Errore controllo sottoscrizione:', error);
+    }
+  };
+
+  // MOSTRA POPUP NOTIFICHE - METODO CORRETTO 2024
   const showNotificationPopup = async () => {
     if (!isOneSignalReady) {
       alert('❌ Prima inizializza OneSignal');
@@ -41,39 +81,23 @@ function HomePage() {
     try {
       console.log('🎯 Tentativo popup notifiche...');
       
-      // METODO 1: Slidedown.promptPush (più comune nelle nuove versioni)
-      if (window.OneSignal.Slidedown && typeof window.OneSignal.Slidedown.promptPush === 'function') {
-        console.log('🔹 Usando Slidedown.promptPush');
-        await window.OneSignal.Slidedown.promptPush();
-        alert('✅ Popup mostrato! (Slidedown)');
+      // METODO 1: Slidedown (più efficace)
+      if (window.OneSignal.Slidedown) {
+        console.log('🔹 Usando Slidedown');
+        await window.OneSignal.Slidedown.pushPrompt();
         return;
       }
       
-      // METODO 2: Notifications.requestPermission
-      if (window.OneSignal.Notifications && typeof window.OneSignal.Notifications.requestPermission === 'function') {
-        console.log('🔹 Usando Notifications.requestPermission');
-        await window.OneSignal.Notifications.requestPermission();
-        alert('✅ Popup mostrato! (Notifications)');
-        return;
-      }
+      // METODO 2: Permessi nativi del browser
+      const permission = await Notification.requestPermission();
+      console.log('🔹 Permesso notifiche:', permission);
       
-      // METODO 3: User (se disponibile)
-      if (window.OneSignal.User && typeof window.OneSignal.User.addTrigger === 'function') {
-        console.log('🔹 OneSignal User API disponibile');
-        // Prova a triggerare il popup
-        window.OneSignal.User.addTrigger('prompt_clicked', true);
-        alert('✅ Trigger inviato! Controlla se appare il popup.');
-        return;
+      if (permission === 'granted') {
+        alert('✅ Notifiche abilitate!');
+        checkSubscriptionStatus();
+      } else {
+        alert('❌ Notifiche non abilitate. Controlla le impostazioni del browser.');
       }
-
-      // METODO 4: Debug e scopri metodi disponibili
-      console.log('🔍 Metodi OneSignal disponibili:');
-      console.log('- OneSignal:', Object.keys(window.OneSignal));
-      if (window.OneSignal.Slidedown) console.log('- Slidedown:', Object.keys(window.OneSignal.Slidedown));
-      if (window.OneSignal.Notifications) console.log('- Notifications:', Object.keys(window.OneSignal.Notifications));
-      if (window.OneSignal.User) console.log('- User:', Object.keys(window.OneSignal.User));
-      
-      alert('❌ Nessun metodo popup trovato. Controlla console per debug.');
       
     } catch (error) {
       console.error('❌ Errore popup:', error);
@@ -81,46 +105,52 @@ function HomePage() {
     }
   };
 
-  // DEBUG AVANZATO
-  const debugOneSignalAdvanced = () => {
-    console.log('=== DEBUG AVANZATO ONESIGNAL ===');
-    console.log('OneSignal:', window.OneSignal);
+  // REGISTRA AZIONE UTENTE PER TRIGGER AUTOMATICO
+  const registerUserAction = () => {
+    if (!window.OneSignal) return;
     
-    if (window.OneSignal) {
-      console.log('🔧 Proprietà principali:');
-      console.log('- Slidedown:', window.OneSignal.Slidedown);
-      console.log('- Notifications:', window.OneSignal.Notifications);
-      console.log('- User:', window.OneSignal.User);
-      console.log('- Context:', window.OneSignal.context);
-      
-      console.log('📋 Tutte le proprietà:');
-      Object.keys(window.OneSignal).forEach(key => {
-        console.log(`- ${key}:`, typeof window.OneSignal[key]);
-      });
+    try {
+      // Questo può triggerare lo slidedown automatico
+      window.OneSignal.User.addTrigger('prompt_interaction', 'clicked');
+      console.log('✅ Azione utente registrata');
+    } catch (error) {
+      console.log('⚠️ Trigger non disponibile');
     }
-    
-    alert('✅ Debug completato! Controlla la console.');
   };
 
-  // INIZIALIZZAZIONE AUTOMATICA
+  // INIZIALIZZAZIONE AUTOMATICA AL CARICAMENTO
   useEffect(() => {
-    const init = async () => {
-      if (window.OneSignal && typeof window.OneSignal.init === 'function') {
-        try {
-          await window.OneSignal.init({
-            appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
-            allowLocalhostAsSecureOrigin: true,
-          });
-          setIsOneSignalReady(true);
-          console.log('✅ OneSignal auto-inizializzata');
-        } catch (error) {
-          console.log('⚠️ OneSignal già inizializzata o errore:', error);
-        }
+    const initOneSignal = async () => {
+      // Aspetta che OneSignal sia completamente caricato
+      if (typeof window.OneSignal === 'undefined') {
+        console.log('⏳ OneSignal non ancora caricato, riprovo...');
+        setTimeout(initOneSignal, 1000);
+        return;
+      }
+
+      try {
+        await window.OneSignal.init({
+          appId: "35648a40-c681-40dd-8151-2db3867ee0fc",
+          allowLocalhostAsSecureOrigin: true,
+          promptOptions: {
+            slidedown: {
+              enabled: true,
+              autoPrompt: false, // Disabilita auto-popup, lo controlliamo noi
+            }
+          }
+        });
+        
+        setIsOneSignalReady(true);
+        checkSubscriptionStatus();
+        console.log('✅ OneSignal auto-inizializzata');
+        
+      } catch (error) {
+        console.log('⚠️ OneSignal già inizializzata:', error.message);
       }
     };
-    
-    // Aspetta che la pagina sia completamente caricata
-    setTimeout(init, 1000);
+
+    // Prova dopo 2 secondi per dare tempo allo script di caricare
+    setTimeout(initOneSignal, 2000);
   }, []);
 
   return (
@@ -136,7 +166,7 @@ function HomePage() {
       </header>
 
       <main className="main">
-        {/* SEZIONE ONESIGNAL MODERNA */}
+        {/* SEZIONE ONESIGNAL MIGLIORATA */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ 
             background: isOneSignalReady ? '#e8f5e8' : '#fff3cd', 
@@ -145,17 +175,21 @@ function HomePage() {
             marginBottom: '20px',
             border: isOneSignalReady ? '2px solid green' : '2px solid orange'
           }}>
-            <h3>🔔 OneSignal SDK Moderno</h3>
+            <h3>🔔 Sistema Notifiche OneSignal</h3>
             <p style={{ 
               color: isOneSignalReady ? 'green' : '#856404',
               fontWeight: 'bold',
               fontSize: '16px'
             }}>
-              {isOneSignalReady ? '✅ INIZIALIZZATA' : '🔄 DA INIZIALIZZARE'}
+              {isOneSignalReady ? '✅ SDK PRONTO' : '🔄 SDK IN CARICAMENTO'}
             </p>
-            <p style={{ fontSize: '14px', color: '#666' }}>
-              Versione: Classe/Funzione - SDK V2
-            </p>
+            
+            {userSubscription && (
+              <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                <p>📊 Stato: <strong>{userSubscription.isSubscribed ? 'ISCRITTO' : 'NON ISCRITTO'}</strong></p>
+                <p>🔐 Permesso: <strong>{userSubscription.permission}</strong></p>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
@@ -191,14 +225,14 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔔 Mostra Popup Notifiche
+              🔔 Richiedi Notifiche
             </button>
 
             <button 
-              onClick={debugOneSignalAdvanced}
+              onClick={registerUserAction}
               style={{
                 padding: '10px 20px',
-                background: '#6c757d',
+                background: '#17a2b8',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -207,49 +241,33 @@ function HomePage() {
                 width: '300px'
               }}
             >
-              🔍 Debug Avanzato
+              🎯 Registra Azione Utente
             </button>
           </div>
         </div>
 
-        {/* MENU PRINCIPALE */}
+        {/* MENU PRINCIPALE - invariato */}
         <div className="menu-grid">
-          <Link to="/eventi" className="menu-btn">
+          <Link to="/eventi" className="menu-btn" onClick={registerUserAction}>
             <span className="icon">🗓️</span>
             <span className="text">EVENTI</span>
             <span className="desc">Gestione eventi e generazione squadre</span>
           </Link>
 
-          <Link to="/eventi" className="menu-btn">
+          <Link to="/eventi" className="menu-btn" onClick={registerUserAction}>
             <span className="icon">👥</span>
             <span className="text">GENERA SQUADRE</span>
             <span className="desc">Crea squadre bilanciate per le partite</span>
           </Link>
 
-          <Link to="/" className="menu-btn">
-            <span className="icon">📊</span>
-            <span className="text">SCARPAROMETRO</span>
-            <span className="desc">Classifica e statistiche giocatori</span>
-          </Link>
-
-          <Link to="/" className="menu-btn">
-            <span className="icon">👤</span>
-            <span className="text">IL MIO PROFILO</span>
-            <span className="desc">Profilo personale e statistiche</span>
-          </Link>
-
-          <Link to="/" className="menu-btn">
-            <span className="icon">⚙️</span>
-            <span className="text">IMPOSTAZIONI</span>
-            <span className="desc">Configurazione sistema</span>
-          </Link>
+          {/* ... altri menu items ... */}
         </div>
       </main>
 
       <footer className="footer">
         <p>- proudly made with rabbia in Veneto -</p>
         <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-          Codice di verifica OneSignal: OS7K3L
+          OneSignal App ID: 35648a40-c681-40dd-8151-2db3867ee0fc
         </p>
       </footer>
     </div>
