@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { database } from '$lib/database/index.js';
 	
 	let giocatori = [];
 	let nuovoGiocatore = {
@@ -8,44 +9,60 @@
 		telefono: '',
 		livello: 3
 	};
+	let isLoading = true;
 	
 	onMount(async () => {
 		await caricaGiocatori();
 	});
 	
 	async function caricaGiocatori() {
-		// Dati mock per testing
-		giocatori = [
-			{ id: 1, nome: 'Mario Rossi', email: 'mario@email.com', telefono: '333 1234567', livello: 4 },
-			{ id: 2, nome: 'Luca Bianchi', email: 'luca@email.com', telefono: '334 7654321', livello: 3 },
-			{ id: 3, nome: 'Paolo Verdi', email: 'paolo@email.com', telefono: '335 1122334', livello: 5 },
-			{ id: 4, nome: 'Giuseppe Neri', email: 'giuseppe@email.com', telefono: '336 4433221', livello: 2 },
-			{ id: 5, nome: 'Antonio Gialli', email: 'antonio@email.com', telefono: '337 5566778', livello: 4 }
-		];
+		try {
+			isLoading = true;
+			giocatori = await database.getGiocatori();
+		} catch (error) {
+			console.error('Errore caricamento giocatori:', error);
+			alert('Errore nel caricamento dei giocatori');
+		} finally {
+			isLoading = false;
+		}
 	}
 	
-	function aggiungiGiocatore() {
+	async function aggiungiGiocatore() {
 		if (!nuovoGiocatore.nome) {
 			alert('Inserisci almeno il nome!');
 			return;
 		}
 		
-		const nuovoId = Math.max(0, ...giocatori.map(g => g.id)) + 1;
-		giocatori = [...giocatori, { ...nuovoGiocatore, id: nuovoId }];
-		
-		nuovoGiocatore = {
-			nome: '',
-			email: '',
-			telefono: '',
-			livello: 3
-		};
-		
-		alert('Giocatore aggiunto!');
+		try {
+			const giocatoreAggiunto = await database.addGiocatore(nuovoGiocatore);
+			giocatori = [...giocatori, giocatoreAggiunto];
+			
+			nuovoGiocatore = {
+				nome: '',
+				email: '',
+				telefono: '',
+				livello: 3
+			};
+			
+			alert('Giocatore aggiunto con successo!');
+		} catch (error) {
+			console.error('Errore aggiunta giocatore:', error);
+			alert('Errore nell\'aggiunta del giocatore');
+		}
 	}
 	
-	function eliminaGiocatore(id) {
-		if (confirm('Sei sicuro di voler eliminare questo giocatore?')) {
+	async function eliminaGiocatore(id) {
+		if (!confirm('Sei sicuro di voler eliminare questo giocatore?')) {
+			return;
+		}
+		
+		try {
+			await database.deleteGiocatore(id);
 			giocatori = giocatori.filter(g => g.id !== id);
+			alert('Giocatore eliminato con successo!');
+		} catch (error) {
+			console.error('Errore eliminazione giocatore:', error);
+			alert('Errore nell\'eliminazione del giocatore');
 		}
 	}
 </script>
@@ -73,6 +90,7 @@
 		<div class="bg-white rounded-lg shadow p-6 mb-8">
 			<h2 class="text-xl font-semibold mb-4">Aggiungi Nuovo Giocatore</h2>
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+				<!-- I campi del form rimangono uguali -->
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
 					<input 
@@ -130,7 +148,11 @@
 				<h2 class="text-xl font-semibold">Lista Giocatori ({giocatori.length})</h2>
 			</div>
 			
-			{#if giocatori.length === 0}
+			{#if isLoading}
+				<div class="p-8 text-center text-gray-500">
+					<p class="text-lg">Caricamento giocatori in corso...</p>
+				</div>
+			{:else if giocatori.length === 0}
 				<div class="p-8 text-center text-gray-500">
 					<p class="text-lg">Nessun giocatore registrato</p>
 					<p class="text-sm">Aggiungi il primo giocatore usando il form sopra!</p>
