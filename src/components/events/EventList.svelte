@@ -1,3 +1,4 @@
+<!-- src/components/events/EventList.svelte -->
 <script>
   import EventCard from './EventCard.svelte'
   
