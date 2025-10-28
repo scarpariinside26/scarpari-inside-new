@@ -1,15 +1,8 @@
-// SOSTITUISCI COMPLETAMENTE il file svelte.config.js
+// VERSIONE MINIMALE - svelte.config.js
 import adapter from '@sveltejs/adapter-vercel';
 
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
+export default {
 	kit: {
-		adapter: adapter(),
-		alias: {
-			'$components': './src/components',
-			'$lib': './src/lib'
-		}
+		adapter: adapter()
 	}
 };
-
-export default config;
